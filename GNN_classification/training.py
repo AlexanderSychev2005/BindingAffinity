@@ -1,8 +1,7 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
 import pandas as pd
-from rdkit import Chem
+
 
 from torch_geometric.loader import DataLoader
 
@@ -61,6 +60,9 @@ if __name__ == "__main__":
     train_dataset = SmilesDataset(train_dataset)
     test_dataset = SmilesDataset(test_dataset)
 
+    train_dataset = [data for data in train_dataset if data is not None]
+    test_dataset = [data for data in test_dataset if data is not None]
+
     num_node_features = train_dataset[0].x.shape[1]
     num_classes = 2
 
@@ -71,7 +73,9 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
-    model = GNNClassifier(input_dim=1, output_dim=2, hidden_channels=16).to(DEVICE)
+
+
+    model = GNNClassifier(input_dim=num_node_features, output_dim=num_classes, hidden_channels=16).to(DEVICE)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.CrossEntropyLoss()
@@ -80,7 +84,10 @@ if __name__ == "__main__":
     print("Start Training")
 
     for epoch in range(1, EPOCHS + 1):
-        train_loss = train_epoch(model, train_loader, optimizer, criterion)
+        train_loss = train(model, train_loader, optimizer, criterion)
 
-        train_acc = evaluate(model, train_loader)
+        train_acc = test(model, train_loader)
         print(f"Epoch: {epoch}, Loss: {train_loss}, Train Accuracy: {train_acc}")
+
+    test_acc = test(model, test_loader)
+    print(f"Test Accuracy: {test_acc}")
