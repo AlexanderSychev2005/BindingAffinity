@@ -5,7 +5,7 @@ from rdkit import Chem, rdBase
 from torch_geometric.data import Data
 from torch.utils.data import Dataset
 
-rdBase.DisableLog('rdApp.*')
+rdBase.DisableLog("rdApp.*")
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -16,33 +16,84 @@ def one_of_k_encoding(x, allowable_set):
 
 
 def get_atom_features(atom):
-    symbols_list = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn', 'Ag', 'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In', 'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb', 'Unknown']
+    symbols_list = [
+        "C",
+        "N",
+        "O",
+        "S",
+        "F",
+        "Si",
+        "P",
+        "Cl",
+        "Br",
+        "Mg",
+        "Na",
+        "Ca",
+        "Fe",
+        "As",
+        "Al",
+        "I",
+        "B",
+        "V",
+        "K",
+        "Tl",
+        "Yb",
+        "Sb",
+        "Sn",
+        "Ag",
+        "Pd",
+        "Co",
+        "Se",
+        "Ti",
+        "Zn",
+        "H",
+        "Li",
+        "Ge",
+        "Cu",
+        "Au",
+        "Ni",
+        "Cd",
+        "In",
+        "Mn",
+        "Zr",
+        "Cr",
+        "Pt",
+        "Hg",
+        "Pb",
+        "Unknown",
+    ]
     degrees_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     numhs_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     implicit_valences_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     return np.array(
         # Type of atom (Symbol)
-        one_of_k_encoding(atom.GetSymbol(), symbols_list) +
+        one_of_k_encoding(atom.GetSymbol(), symbols_list)
+        +
         # Number of neighbours (Degree)
-        one_of_k_encoding(atom.GetDegree(), degrees_list) +
+        one_of_k_encoding(atom.GetDegree(), degrees_list)
+        +
         # Number of hydrogen atoms (Implicit Hs) - bond donors
-        one_of_k_encoding(atom.GetTotalNumHs(), numhs_list) +
+        one_of_k_encoding(atom.GetTotalNumHs(), numhs_list)
+        +
         # Valence - chemical potential
-        one_of_k_encoding(atom.GetImplicitValence(), implicit_valences_list) +
+        one_of_k_encoding(atom.GetImplicitValence(), implicit_valences_list)
+        +
         # Hybridization - so important for 3d structure, sp2 - Trigonal planar, sp3 - Tetrahedral
-        one_of_k_encoding(atom.GetHybridization(), [
-            Chem.rdchem.HybridizationType.SP,
-            Chem.rdchem.HybridizationType.SP2,
-            Chem.rdchem.HybridizationType.SP3,
-            Chem.rdchem.HybridizationType.SP3D,
-            Chem.rdchem.HybridizationType.SP3D2,
-            'other']) +
+        one_of_k_encoding(
+            atom.GetHybridization(),
+            [
+                Chem.rdchem.HybridizationType.SP,
+                Chem.rdchem.HybridizationType.SP2,
+                Chem.rdchem.HybridizationType.SP3,
+                Chem.rdchem.HybridizationType.SP3D,
+                Chem.rdchem.HybridizationType.SP3D2,
+                "other",
+            ],
+        )
+        +
         # Aromaticity (Boolean)
         [atom.GetIsAromatic()]
-
-
     )
-
 
 
 class SmilesDataset(Dataset):
@@ -58,12 +109,12 @@ class SmilesDataset(Dataset):
         label = row["label"]
 
         mol = Chem.MolFromSmiles(smiles)
-        if mol is None: return None
+        if mol is None:
+            return None
 
         # Nodes
         atom_features = [get_atom_features(atom) for atom in mol.GetAtoms()]
         x = torch.tensor(np.array(atom_features), dtype=torch.float)
-
 
         # Edges
         edge_indexes = []
@@ -77,7 +128,6 @@ class SmilesDataset(Dataset):
         # contiguous - take the virtually transposed tensor and make its physical copy and lay bytes sequentially
 
         edge_index = torch.tensor(edge_indexes, dtype=torch.long).t().contiguous()
-
 
         # Label
         y = torch.tensor([label], dtype=torch.long)
@@ -98,8 +148,5 @@ if __name__ == "__main__":
     train_dataset = SmilesDataset(train_dataset)
     test_dataset = SmilesDataset(test_dataset)
 
-
     print(len(train_dataset))
     print(len(test_dataset))
-
-

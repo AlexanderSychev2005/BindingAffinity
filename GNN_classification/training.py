@@ -8,8 +8,9 @@ from torch_geometric.loader import DataLoader
 from Dataset_Preparation import SmilesDataset
 from model import GNNClassifier
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(DEVICE)
+
 
 def train(model, loader, optimizer, criterion):
     model.train()
@@ -73,9 +74,9 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
-
-
-    model = GNNClassifier(input_dim=num_node_features, output_dim=num_classes, hidden_channels=16).to(DEVICE)
+    model = GNNClassifier(
+        input_dim=num_node_features, output_dim=num_classes, hidden_channels=16
+    ).to(DEVICE)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.CrossEntropyLoss()
