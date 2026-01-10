@@ -10,10 +10,11 @@ from tqdm import tqdm
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train_epoch(model, loader, optimizer, criterion):
+
+def train_epoch(epoch, model, loader, optimizer, criterion):
     model.train()
     total_loss = 0
-    for batch in tqdm(loader, desc="Training"):
+    for batch in tqdm(loader, desc=f"Training epoch: {epoch}"):
         batch = batch.to(DEVICE)
         optimizer.zero_grad()
 
@@ -25,11 +26,11 @@ def train_epoch(model, loader, optimizer, criterion):
         total_loss += loss.item()
     return total_loss / len(loader)
 
-def evaluate(model, loader, criterion):
+def evaluate(epoch, model, loader, criterion):
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader, desc=f"Evaluating epoch: {epoch}"):
             batch = batch.to(DEVICE)
             out = model(batch.x, batch.edge_index, batch.batch, batch.protein_seq)
             loss = criterion(out.squeeze(), batch.y.squeeze())
@@ -43,6 +44,10 @@ def main():
     print("Dataset loaded with {} samples".format(len(dataframe)))
     dataset = BindingDataset(dataframe)
     print("Dataset transformed with {} samples".format(len(dataset)))
+
+    if len(dataset) == 0:
+        print("Dataset is empty")
+        return
 
 
     train_size = int(0.8 * len(dataset))
@@ -59,9 +64,10 @@ def main():
     criterion = nn.MSELoss()
 
     num_epochs = 20
+    print(f"Starting training on {DEVICE}")
     for epoch in range(num_epochs):
-        train_loss = train_epoch(model, train_loader, optimizer, criterion)
-        test_loss = evaluate(model, test_loader, criterion)
+        train_loss = train_epoch(epoch, model, train_loader, optimizer, criterion)
+        test_loss = evaluate(epoch, model, test_loader, criterion)
         print(f'Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}')
     torch.save(model.state_dict(), './model.pth')
 

@@ -75,5 +75,5 @@ class BilingualDataset(Dataset):
         }
 
 def casual_mask(size):
-    mask = torch.triu(torch.ones(1, size, size), diagonal=1) # Upper triangular matrix, above the main diagonal
+    mask = torch.triu(torch.ones((1, size, size)), diagonal=1).type(torch.int) # Upper triangular matrix, above the main diagonal
     return mask==0
