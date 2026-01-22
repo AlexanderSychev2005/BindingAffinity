@@ -94,7 +94,7 @@ class ProteinTransformer(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.embedding = nn.Embedding(vocab_size, d_model)
-        self.pos_encoder = PositionalEncoding(d_model, dropout)
+        self.pos_encoder = PositionalEncoding(d_model, dropout=dropout)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=h, batch_first=True)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=N)
 

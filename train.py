@@ -11,12 +11,20 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from datetime import datetime
+import os
+
+
+BATCH_SIZE = 16
+LR = 0.00064
+WEIGHT_DECAY = 7.06e-6
+EPOCS = 100
+DROPOUT = 0.325
+GAT_HEADS = 2
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-BATCH_SIZE = 32
-LR = 0.0005
-EPOCS = 30
 LOG_DIR = f"runs/experiment_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+TOP_K = 3
+SAVES_DIR = LOG_DIR + "/models"
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -68,7 +76,11 @@ def evaluate(epoch, model, loader, criterion, writer):
 def main():
     gen = set_seed(42)
     writer = SummaryWriter(LOG_DIR)
+
+    if not os.path.exists(SAVES_DIR):
+        os.makedirs(SAVES_DIR)
     print(f"Logging to {LOG_DIR}...")
+    print(f"Model saves to {SAVES_DIR}...")
     # Load dataset
     dataframe = pd.read_csv('pdbbind_refined_dataset.csv')
     dataframe.dropna(inplace=True)
@@ -90,26 +102,47 @@ def main():
     num_features = train_dataset[0].x.shape[1]
     print("Number of node features:", num_features)
 
-    model = BindingAffinityModel(num_node_features=num_features, hidden_channels_gnn=128).to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=1e-4)
+    model = BindingAffinityModel(
+        num_node_features=num_features,
+        hidden_channels=256,
+        gat_heads=GAT_HEADS,
+        dropout=DROPOUT
+    ).to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
     criterion = nn.MSELoss()
 
-    best_test_loss = float('inf')
+    top_models = []
 
     print(f"Starting training on {DEVICE}")
-    for epoch in range(1, EPOCS):
+    for epoch in range(1, EPOCS + 1):
         train_loss = train_epoch(epoch, model, train_loader, optimizer, criterion, writer)
         test_loss = evaluate(epoch, model, test_loader, criterion, writer)
 
-
         print(f'Epoch {epoch:02d}, Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}')
-        if test_loss < best_test_loss:
-            best_test_loss = test_loss
-            torch.save(model.state_dict(), f'best_model_gat.pth')
-            print(f'Best model saved with Test Loss MSE: {best_test_loss:.4f}')
+
+        filename = f"{SAVES_DIR}/model_ep{epoch:03d}_mse{test_loss:.4f}.pth"
+
+        torch.save(model.state_dict(), filename)
+        top_models.append({'loss': test_loss, 'path': filename, 'epoch': epoch})
+
+        top_models.sort(key=lambda x: x['loss'])
+
+        if len(top_models) > TOP_K:
+            worst_model = top_models.pop()
+            os.remove(worst_model['path'])
+
+        if any(m['epoch'] == epoch for m in top_models):
+            rank = [m['epoch'] for m in top_models].index(epoch) + 1
+            print(f'-- Model saved (Rank: {rank})')
+        else:
+            print("")
+
 
     writer.close()
     print("Training finished.")
+    print("Top models saved:")
+    for i, m in enumerate(top_models):
+        print(f"{i + 1}. {m['path']} (MSE: {m['loss']:.4f})")
 
 
 if __name__ == "__main__":
