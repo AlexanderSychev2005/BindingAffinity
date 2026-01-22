@@ -1,4 +1,6 @@
 torch
+pytorch-lightning
+optuna
 
 numpy
 pandas

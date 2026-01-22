@@ -119,7 +119,7 @@ class MultiHeadAttention(nn.Module):
             1, 2
         )
 
-        x, attention_scores = MultiHeadAttention.attention(
+        x, self.attention_scores = MultiHeadAttention.attention(
             query, key, value, mask, self.dropout
         )
 
