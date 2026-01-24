@@ -1,1 +1,7 @@
 .idea
+.venv
+.ipynb_checkpoints
+
+/refined-set/
+/data
+/lightning_logs

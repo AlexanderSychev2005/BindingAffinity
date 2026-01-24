@@ -8,19 +8,19 @@ from torch.optim import Adam
 
 from model import LigandGNN, ProteinTransformer
 
+
 class BindingAffinityModelPL(pl.LightningModule):
     def __init__(self, num_node_features, hidden_channels_gnn, lr):
         super().__init__()
-        self.save_hyperparameters() # Save hyperparameters for easy access
+        self.save_hyperparameters()  # Save hyperparameters for easy access
         self.lr = lr
 
-        self.ligand_gnn = LigandGNN(input_dim=num_node_features, hidden_channels=hidden_channels_gnn)
+        self.ligand_gnn = LigandGNN(
+            input_dim=num_node_features, hidden_channels=hidden_channels_gnn
+        )
         self.protein_transformer = ProteinTransformer(vocab_size=26)
         self.head = nn.Sequential(
-            nn.Linear(128 + 128, 256),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(256, 1)
+            nn.Linear(128 + 128, 256), nn.ReLU(), nn.Dropout(0.2), nn.Linear(256, 1)
         )
         self.criterion = nn.MSELoss()
 

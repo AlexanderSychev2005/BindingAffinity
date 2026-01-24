@@ -7,11 +7,13 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 from torch.utils.data import random_split
 from dataset import BindingDataset
-from model import BindingAffinityModel
+from model_attention import BindingAffinityModel
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-N_TRIALS = 20
-EPOCHS_PER_TRIAL = 15
+N_TRIALS = 50
+MAX_EPOCHS_PER_TRIAL = 60
+LOG_DIR = "runs"
+DATA_CSV = "pdbbind_refined_dataset.csv"
 
 
 def set_seed(seed=42):
@@ -22,9 +24,9 @@ def set_seed(seed=42):
     return torch.Generator().manual_seed(seed)
 
 
-dataframe = pd.read_csv("pdbbind_refined_dataset.csv")
+dataframe = pd.read_csv(DATA_CSV)
 dataframe.dropna(inplace=True)
-dataset = BindingDataset(dataframe)
+dataset = BindingDataset(dataframe, max_seq_length=1200)
 
 gen = set_seed(42)
 
@@ -61,19 +63,19 @@ def test(model, loader, criterion):
 
 def objective(trial):
     # Architecture
-    hidden_dim = trial.suggest_categorical("hidden_dim", [64, 128, 256])
-    gat_heads = trial.suggest_categorical("gat_heads", [2, 4, 8])
-    dropout = trial.suggest_float("dropout", 0.1, 0.5)
+    hidden_dim = trial.suggest_categorical("hidden_dim", [128, 256])
+    gat_heads = trial.suggest_categorical("gat_heads", [2, 4])
+    dropout = trial.suggest_float("dropout", 0.2, 0.5)
 
     # Learning
 
     lr = trial.suggest_float(
-        "lr", 1e-5, 1e-2, log=True
-    )  # Learning rate from 0.00001 to 0.01
+        "lr", 1e-5, 1e-3, log=True
+    )  # Learning rate from 0.00001 to 0.001
     weight_decay = trial.suggest_float(
         "weight_decay", 1e-6, 1e-3, log=True
     )  # Weight decay from 0.000001 to 0.001
-    batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+    batch_size = 16
 
     model = BindingAffinityModel(
         num_node_features=num_features,
@@ -83,7 +85,6 @@ def objective(trial):
     ).to(DEVICE)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=5
     )
@@ -94,17 +95,15 @@ def objective(trial):
 
     best_val_loss = float("inf")
 
-    for epoch in range(EPOCHS_PER_TRIAL):
+    for epoch in range(MAX_EPOCHS_PER_TRIAL):
         train(model, train_loader, optimizer, criterion)
         val_loss = test(model, test_loader, criterion)
+        scheduler.step(val_loss)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-
-        scheduler.step(val_loss)
-
         print(
-            f"Trial {trial.number} | Epoch {epoch + 1}/{EPOCHS_PER_TRIAL} | Val Loss: {val_loss:.4f}"
+            f"Trial {trial.number} | Epoch {epoch + 1}/{MAX_EPOCHS_PER_TRIAL} | Val Loss: {val_loss:.4f}"
         )
 
         trial.report(val_loss, epoch)
@@ -117,9 +116,9 @@ if __name__ == "__main__":
     storage_name = "sqlite:///db.sqlite3"
     study = optuna.create_study(
         direction="minimize",
-        pruner=optuna.pruners.MedianPruner(),
+        pruner=optuna.pruners.MedianPruner(n_min_trials=5, n_warmup_steps=10),
         storage=storage_name,
-        study_name="binding_prediction_optimization",
+        study_name="binding_prediction_optimization_attentionV2",
         load_if_exists=True,
     )
     print("Start hyperparameter optimization...")
@@ -130,4 +129,4 @@ if __name__ == "__main__":
     print("Best Test MSE: ", study.best_value)
 
     df_results = study.trials_dataframe()
-    df_results.to_csv("optuna_results.csv")
+    df_results.to_csv("optuna_results_attention.csv")

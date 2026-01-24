@@ -65,6 +65,14 @@ def get_atom_features(atom):
     degrees_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     numhs_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     implicit_valences_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    formal_charge_list = [-2, -1, 0, 1, 2]
+    chirality_list = [
+        Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
+        Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
+        Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
+        Chem.rdchem.ChiralType.CHI_OTHER,
+    ]
     return np.array(
         # Type of atom (Symbol)
         one_of_k_encoding(atom.GetSymbol(), symbols_list)
@@ -93,22 +101,55 @@ def get_atom_features(atom):
         +
         # Aromaticity (Boolean)
         [atom.GetIsAromatic()]
+        +
+        # Formal Charge
+        one_of_k_encoding(atom.GetFormalCharge(), formal_charge_list)
+        +
+        # Chirality (Geometry)
+        one_of_k_encoding(atom.GetChiralTag(), chirality_list)
+        +
+        # Is in ring (Boolean)
+        [atom.IsInRing()]
     )
 
+
 def get_protein_features(char):
-    prot_vocab= {
-            'A': 1, 'R': 2, 'N': 3, 'D': 4, 'C': 5, 'Q': 6, 'E': 7, 'G': 8, 'H': 9,
-            'I': 10, 'L': 11, 'K': 12, 'M': 13, 'F': 14, 'P': 15, 'S': 16, 'T': 17,
-            'W': 18, 'Y': 19, 'V': 20, 'X': 21, 'Z': 21, 'B': 21,
-            'PAD': 0, 'UNK': 21
-        }
-    return prot_vocab.get(char, prot_vocab['UNK'])
+    prot_vocab = {
+        "A": 1,
+        "R": 2,
+        "N": 3,
+        "D": 4,
+        "C": 5,
+        "Q": 6,
+        "E": 7,
+        "G": 8,
+        "H": 9,
+        "I": 10,
+        "L": 11,
+        "K": 12,
+        "M": 13,
+        "F": 14,
+        "P": 15,
+        "S": 16,
+        "T": 17,
+        "W": 18,
+        "Y": 19,
+        "V": 20,
+        "X": 21,
+        "Z": 21,
+        "B": 21,
+        "PAD": 0,
+        "UNK": 21,
+    }
+    return prot_vocab.get(char, prot_vocab["UNK"])
 
 
 class BindingDataset(Dataset):
     def __init__(self, dataframe, max_seq_length=1000):
         self.data = dataframe
-        self.max_seq_length = max_seq_length  # Define a maximum sequence length for padding/truncation
+        self.max_seq_length = (
+            max_seq_length  # Define a maximum sequence length for padding/truncation
+        )
 
     def __len__(self):
         return len(self.data)
@@ -144,9 +185,11 @@ class BindingDataset(Dataset):
         # Protein (Sequence, tensor of integers)
         tokens = [get_protein_features(char) for char in sequence]
         if len(tokens) > self.max_seq_length:
-            tokens = tokens[:self.max_seq_length]
+            tokens = tokens[: self.max_seq_length]
         else:
-            tokens.extend([get_protein_features("PAD")] * (self.max_seq_length - len(tokens)))
+            tokens.extend(
+                [get_protein_features("PAD")] * (self.max_seq_length - len(tokens))
+            )
         protein_tensor = torch.tensor(tokens, dtype=torch.long)
 
         # Affinity
@@ -164,4 +207,3 @@ if __name__ == "__main__":
 
     print(len(train_dataset))
     print(len(test_dataset))
-

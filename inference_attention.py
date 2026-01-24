@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from torch_geometric.loader import DataLoader
 from dataset import BindingDataset
-from model import BindingAffinityModel
+from model_attention import BindingAffinityModel
 from tqdm import tqdm
 from scipy.stats import pearsonr
 from torch.utils.data import random_split
-from train import GAT_HEADS, DROPOUT, HIDDEN_CHANNELS
+from train_attention import GAT_HEADS, DROPOUT, HIDDEN_CHANNELS
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_PATH = "runs/experiment_20260122_230138_GAT_without_formal_charge_chirality_ring_scheduler/models/model_ep092_mse2.3805.pth"
+MODEL_PATH = "runs/experiment_attention20260123_103840_with_additional_data_scheduler/models/model_ep032_mse2.0264.pth"
 
 
 def set_seed(seed=42):

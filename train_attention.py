@@ -6,24 +6,33 @@ import pandas as pd
 from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 from dataset import BindingDataset
-from model import BindingAffinityModel
+from model_attention import BindingAffinityModel
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from datetime import datetime
 import os
 
+# 2.02
+# BATCH_SIZE = 16
+# LR = 0.00035  # Reduced learning rate
+# WEIGHT_DECAY = 1e-5  # Slightly increased weight decay (regularization)
+# EPOCHS = 100
+# DROPOUT = 0.3  # Slightly reduced dropout
+# GAT_HEADS = 2
+# HIDDEN_CHANNELS = 256
 
+# 1.90 from Optuna
 BATCH_SIZE = 16
-LR = 0.00064
-WEIGHT_DECAY = 7.06e-6
-EPOCS = 100
-DROPOUT = 0.325
-GAT_HEADS = 2
+LR = 0.000034
+WEIGHT_DECAY = 1e-6
+DROPOUT = 0.26
+EPOCHS = 100
 HIDDEN_CHANNELS = 256
+GAT_HEADS = 2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-LOG_DIR = f"runs/experiment_scheduler{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+LOG_DIR = f"runs/experiment_attention{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 TOP_K = 3
 SAVES_DIR = LOG_DIR + "/models"
 
@@ -115,16 +124,16 @@ def main():
     ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
     # factor of 0.5 means reducing lr to half when triggered
-    # patience of 5 means wait for 5 epochs before reducing lr
+    # patience of 8 means wait for 8 epochs before reducing lr
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=5
+        optimizer, mode="min", factor=0.5, patience=8
     )
     criterion = nn.MSELoss()
 
     top_models = []
 
     print(f"Starting training on {DEVICE}")
-    for epoch in range(1, EPOCS + 1):
+    for epoch in range(1, EPOCHS + 1):
         train_loss = train_epoch(
             epoch, model, train_loader, optimizer, criterion, writer
         )

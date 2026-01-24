@@ -6,10 +6,11 @@ from torch.utils.data import random_split
 from model_pl import BindingAffinityModelPL
 import pandas as pd
 
+
 def main():
     lr = 0.0005
     # Load dataset
-    dataframe = pd.read_csv('pdbbind_refined_dataset.csv')
+    dataframe = pd.read_csv("pdbbind_refined_dataset.csv")
     dataframe.dropna(inplace=True)
     print("Dataset loaded with {} samples".format(len(dataframe)))
     dataset = BindingDataset(dataframe)
@@ -30,21 +31,22 @@ def main():
 
     model = BindingAffinityModelPL(num_node_features=84, hidden_channels_gnn=128, lr=lr)
     checkpoint_callback = ModelCheckpoint(
-        monitor='val_loss',
-        dirpath='checkpoints/',
-        filename='best-checkpoint',
+        monitor="val_loss",
+        dirpath="checkpoints/",
+        filename="best-checkpoint",
         save_top_k=3,
-        mode='min'
+        mode="min",
     )
     early_stop_callback = EarlyStopping(monitor="val_loss", patience=5)
 
     trainer = pl.Trainer(
         max_epochs=20,
-        accelerator="auto", # Use GPU if available
+        accelerator="auto",  # Use GPU if available
         devices=1,
-        callbacks=[checkpoint_callback, early_stop_callback]
+        callbacks=[checkpoint_callback, early_stop_callback],
     )
     trainer.fit(model, train_loader, val_loader)
+
 
 if __name__ == "__main__":
     main()
