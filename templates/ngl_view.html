@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NGL Visualization</title>
+    <script src="https://unpkg.com/ngl@2.0.0-dev.37/dist/ngl.js"></script>
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #viewport { width: 100%; height: 100%; background: linear-gradient(to bottom, #ffffff, #f0f2f5); }
+
+        #tooltip {
+            display: none;
+            position: absolute;
+            z-index: 100;
+            pointer-events: none;
+            background-color: rgba(30, 30, 30, 0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px; right: 20px; z-index: 50;
+            background: rgba(255, 255, 255, 0.90);
+            padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; gap: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #eee;
+        }
+
+        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .label-text { font-size: 14px; font-weight: 600; color: #333; }
+
+        .btn-shot {
+            background: #007bff; color: white; border: none; padding: 8px 12px;
+            border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;
+            transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .btn-shot:hover { background: #0056b3; }
+
+        input[type=checkbox] { cursor: pointer; transform: scale(1.2); accent-color: #007bff; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-row">
+            <span class="label-text">Heatmap Colors</span>
+            <input type="checkbox" id="heatmapToggle">
+        </div>
+        <div class="control-row">
+            <span class="label-text">Auto Spin</span>
+            <input type="checkbox" id="spinToggle">
+        </div>
+        <div style="height: 1px; background: #ddd; margin: 5px 0;"></div>
+        <button class="btn-shot" id="screenshotBtn">📷 Screenshot</button>
+    </div>
+
+    <div id="tooltip"></div>
+    <div id="viewport"></div>
+
+    <script>
+        var pdbData = `{{ pdb_block }}`;
+        var component;
+        var stage;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            stage = new NGL.Stage("viewport", { backgroundColor: "white" });
+
+            var tooltip = document.getElementById("tooltip");
+            var toggleHeatmap = document.getElementById("heatmapToggle");
+            var toggleSpin = document.getElementById("spinToggle");
+            var btnScreenshot = document.getElementById("screenshotBtn");
+
+            var stringBlob = new Blob([pdbData], {type: 'text/plain'});
+
+            stage.loadFile(stringBlob, { ext: 'pdb' }).then(function (o) {
+                component = o;
+                updateVisualization();
+                o.autoView();
+            });
+
+            function updateVisualization() {
+                if (!component) return;
+                component.removeAllRepresentations();
+
+                var useHeatmap = toggleHeatmap.checked;
+
+                if (useHeatmap) {
+                    component.addRepresentation("ball+stick", {
+                        colorScheme: "bfactor",
+                        colorDomain: [0.1, 0.9],
+                        colorScale: ["#2d34bf", "#ffffff", "#d90429"],
+                        radiusScale: 1.0
+                    });
+                } else {
+                    component.addRepresentation("ball+stick", {
+                        colorScheme: "element",
+                        radiusScale: 1.0
+                    });
+                }
+            }
+
+            toggleHeatmap.addEventListener("change", updateVisualization);
+
+            toggleSpin.addEventListener("change", function() {
+                if(toggleSpin.checked) { stage.setSpin(true); } else { stage.setSpin(false); }
+            });
+
+            btnScreenshot.addEventListener("click", function() {
+                stage.makeImage({factor: 1, antialias: true, trim: false, transparent: false}).then(function(blob) {
+                    NGL.download(blob, "biobind_visualization.png");
+                });
+            });
+
+            stage.mouseControls.remove("hoverPick");
+            stage.signals.hovered.add(function (pickingProxy) {
+                if (pickingProxy && (pickingProxy.atom || pickingProxy.closestBondAtom)) {
+                    var atom = pickingProxy.atom || pickingProxy.closestBondAtom;
+                    var score = atom.bfactor.toFixed(3);
+                    var idx = atom.index;
+
+                    var name = atom.atomname;
+                    if (!name) name = atom.element;
+                    if (!name) name = "Unknown";
+
+                    var html = '<div><b>ID:</b> ' + idx + ' <span style="color:#aaa">|</span> <b>Atom:</b> ' + name + '</div>' +
+                               '<div style="margin-top:4px;"><b>Importance:</b> <span style="color: #ff6b6b; font-weight:bold;">' + score + '</span></div>';
+
+                    tooltip.innerHTML = html;
+                    tooltip.style.display = "block";
+
+                    var cp = pickingProxy.canvasPosition;
+                    tooltip.style.left = (cp.x + 20) + "px";
+                    tooltip.style.top = (cp.y + 20) + "px";
+                } else {
+                    tooltip.style.display = "none";
+                }
+            });
+
+            window.addEventListener("resize", function(event){ stage.handleResize(); }, false);
+        });
+    </script>
+</body>
+</html>

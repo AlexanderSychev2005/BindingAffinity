@@ -5,14 +5,17 @@ from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from utils import get_inference_data, get_py3dmol_view,save_standalone_ngl_html
-import nglview as nv
+from utils import get_inference_data, get_py3dmol_view, save_standalone_ngl_html, get_lipinski_properties
+
 
 
 app = FastAPI()
 
 os.makedirs("html_results", exist_ok=True)
+
 app.mount("/results", StaticFiles(directory="html_results"), name="results")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
@@ -62,6 +65,8 @@ async def predict(
 
     ngl_url_link = f"/results/{filename_ngl}"
 
+    lipinski_properties = get_lipinski_properties(mol)
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "result_ready": True,
@@ -70,7 +75,8 @@ async def predict(
         "affinity": f"{affinity:.2f}",
         "atom_list": atom_list,
         "html_py3dmol": py3dmol_content,
-        "url_ngl": ngl_url_link
+        "url_ngl": ngl_url_link,
+        "lipinski": lipinski_properties
     })
 
 

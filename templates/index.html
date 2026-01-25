@@ -5,15 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BioBinding AI Vis</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { background: white; border-right: 1px solid #dee2e6; height: 100vh; overflow-y: auto; }
-        .result-card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 12px; margin-bottom: 20px; }
-        .affinity-score { font-size: 3rem; font-weight: bold; color: #4e73df; }
-        .atom-badge { font-size: 0.9rem; padding: 8px 12px; }
-        .mol-container { width: 100%; height: 600px; border-radius: 12px; overflow: hidden; border: 1px solid #ddd; }
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
+    <link href="/static/css/styles.css" rel="stylesheet">
 </head>
 <body>
 
@@ -62,13 +54,50 @@
                     <div class="affinity-score">{{ affinity }}</div>
                 </div>
 
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <b>💊 Drug-Likeness (Lipinski's Rule of 5)</b>
+                        <span class="badge bg-{{ lipinski.css_class }}" style="font-size: 0.9em;">
+                            {{ lipinski.status_text }}
+                        </span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-bordered mb-0 text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th title="Molecular Weight (< 500 Da)">Mass (MW)</th>
+                                    <th title="Lipophilicity (< 5)">LogP</th>
+                                    <th title="H-Bond Donors (< 5)">H-Donors</th>
+                                    <th title="H-Bond Acceptors (< 10)">H-Acceptors</th>
+                                    <th title="Polar Surface Area (Permeability)">TPSA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="{{ 'table-danger' if lipinski.MW > 500 else '' }}">{{ lipinski.MW }}</td>
+                                    <td class="{{ 'table-danger' if lipinski.LogP > 5 else '' }}">{{ lipinski.LogP }}</td>
+                                    <td class="{{ 'table-danger' if lipinski.HBD > 5 else '' }}">{{ lipinski.HBD }}</td>
+                                    <td class="{{ 'table-danger' if lipinski.HBA > 10 else '' }}">{{ lipinski.HBA }}</td>
+                                    <td>{{ lipinski.TPSA }} Å²</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        {% if lipinski.violations > 0 %}
+                        <div class="p-2 text-center text-muted small bg-light border-top">
+                            ⚠️ Violations: {{ lipinski.bad_params }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="card result-card p-3">
                     <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="pills-py3dmol-tab" data-bs-toggle="pill" data-bs-target="#pills-py3dmol" type="button">🧬 Py3Dmol (High Contrast)</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="pills-ngl-tab" data-bs-toggle="pill" data-bs-target="#pills-ngl" type="button">🔬 NGLView</button>
+                            <button class="nav-link" id="pills-ngl-tab" data-bs-toggle="pill" data-bs-target="#pills-ngl" type="button">🔬 NGLView (Interactive)</button>
                         </li>
                     </ul>
 

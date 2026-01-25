@@ -1,9 +1,6 @@
-from typing import Any
-
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.optim import Adam
 
 from model import LigandGNN, ProteinTransformer
