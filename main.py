@@ -5,9 +5,8 @@ from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from utils import get_inference_data, get_py3dmol_view, save_standalone_ngl_html, get_lipinski_properties
-
-
+from utils import get_inference_data, get_py3dmol_view, save_standalone_ngl_html, get_lipinski_properties, \
+    get_gemini_explanation
 
 app = FastAPI()
 
@@ -67,6 +66,14 @@ async def predict(
 
     lipinski_properties = get_lipinski_properties(mol)
 
+    ai_explanation = get_gemini_explanation(
+        smiles_ligand,
+        sequence_protein,
+        f"{affinity:.2f}",
+        atom_list,
+        lipinski_properties
+    )
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "result_ready": True,
@@ -76,7 +83,8 @@ async def predict(
         "atom_list": atom_list,
         "html_py3dmol": py3dmol_content,
         "url_ngl": ngl_url_link,
-        "lipinski": lipinski_properties
+        "lipinski": lipinski_properties,
+        "ai_explanation": ai_explanation
     })
 
 

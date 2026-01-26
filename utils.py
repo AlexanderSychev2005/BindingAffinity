@@ -6,6 +6,11 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 import py3Dmol
 from jinja2 import Environment, FileSystemLoader
+from google import genai
+from google.genai import types
+from decouple import config
+
+GEMINI_API_KEY = config("GEMINI_API_KEY")
 
 # Убираем лишние импорты (nglview тут больше не нужен для standalone HTML)
 from dataset import get_atom_features, get_protein_features
@@ -153,16 +158,67 @@ def save_standalone_ngl_html(mol, importance, filepath):
     for i, atom in enumerate(mol_pdb.GetAtoms()):
         info = atom.GetPDBResidueInfo()
         if info:
-            info.SetTempFactor(float(importance[i]) * 100)
+            info.SetTempFactor(float(importance[i]))
 
     final_pdb_block = Chem.MolToPDBBlock(mol_pdb)
     final_pdb_block = final_pdb_block.replace("`", "\\`")
+
+    indices_sorted = np.argsort(importance)[::-1]
+    top_indices = indices_sorted[:15]
+
+
+    selection_list = [str(i) for i in top_indices]
+    selection_str = "@" + ",".join(selection_list)
+
+    if not selection_list:
+        selection_str = "@-1"
 
 
     env = Environment(loader=FileSystemLoader('templates'))
     template = env.get_template('ngl_view.html')
 
-    rendered_html = template.render(pdb_block=final_pdb_block)
+    rendered_html = template.render(pdb_block=final_pdb_block, selection_str=selection_str)
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(rendered_html)
+
+
+def get_gemini_explanation(ligand_smiles, protein_sequence, affinity, top_atoms, lipinski):
+    if not GEMINI_API_KEY:
+        return "<p class='text-warning'>API Key for Gemini not found. Please set GOOGLE_API_KEY environment variable.</p>"
+
+    # Forming a list of top important atoms for a prompt
+    atoms_desc = ", ".join([f"{a['symbol']}(idx {a['id']}, score {a['score']})" for a in top_atoms[:10]])
+
+    # Cut a protein to not spend too many tokens
+    prot_short = protein_sequence[:100] + "..." if len(protein_sequence) > 100 else protein_sequence
+
+    prompt = f"""
+    You are an expert Computational Chemist and Drug Discovery Scientist.
+    Analyze the following interaction results between a Ligand and a Protein.
+    
+    **Data:**
+    1. **Ligand (SMILES):** `{ligand_smiles}`
+    2. **Target Protein (Start):** `{prot_short}`
+    3. **Predicted Binding Affinity (pKd):** {affinity} (Note: >7 is usually good, <5 is weak).
+    4. **Top Active Atoms (Attention Weights):** {atoms_desc}. These atoms had the highest attention scores in the Graph Neural Network with attention.
+    5. **Lipinski Properties:** {lipinski['status_text']} (Violations: {lipinski['violations']}).
+    
+    **Task:**
+    Write a concise, professional scientific summary (in HTML format, use <p>, <ul>, <li>, <b>).
+    Cover these points:
+    1. **Affinity Analysis:** Is the binding strong? What does a pKd of {affinity} imply for a drug candidate?
+    2. **Structural Basis:** Why might the model have focused on the atoms listed above (e.g., Nitrogen/Oxygen often act as H-bond donors/acceptors, Rings for stacking)?
+    3. **Drug-Likeness:** Comment on the Lipinski status. Is it suitable for oral administration?
+    4. **Conclusion:** Verdict on whether to proceed with this molecule.
+    Keep it relatively short (max 150 words). Do not include markdown code blocks (```html), just return the raw HTML tags.
+    """
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        return f"<p class='text-danger'>Error generating explanation: {str(e)}</p>"

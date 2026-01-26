@@ -20,7 +20,7 @@ class CrossAttentionLayer(nn.Module):
         # Feedforward network for further processing, classical transformer style
         self.ff = nn.Sequential(
             nn.Linear(feature_dim, feature_dim * 4),
-            nn.GELU(),
+            nn.GELU(), # GELU works better with transformers
             nn.Dropout(dropout),
             nn.Linear(feature_dim * 4, feature_dim),
         )
@@ -62,7 +62,8 @@ class BindingAffinityModel(nn.Module):
         self.dropout = dropout
         self.hidden_channels = hidden_channels
 
-        # Tower 1 - Ligand GNN with GAT layers, using 3 GAT layers, so that every atom can "see" up to 3 bonds away
+        # Tower 1 - Ligand GNN with GAT layers, using 3 GAT layers, so that every atom can "see" up to 3 bonds away,
+        # Attention allows to measure the importance of the neighbours
         self.gat1 = GATConv(
             num_node_features, hidden_channels, heads=gat_heads, concat=False
         )
@@ -99,7 +100,7 @@ class BindingAffinityModel(nn.Module):
         x = F.elu(self.gat3(x, edge_index))  # [Total_Atoms, Hidden_Channels]
 
         # Convert graph into tensor [Batch, Max_Atoms, Hidden_Channels]
-        # to_dense_batch adds zeros paddings where necessary
+        # to_dense_batch adds zeros paddings where necessary to the size of the largest graph in the batch
         ligand_dense, ligand_mask = to_dense_batch(x, batch)
         # ligand_dense: [Batch, Max_Atoms, Hidden_Channels]
         # ligand_mask: [Batch, Max_Atoms] True where there is real atom, False where there is padding
