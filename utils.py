@@ -60,7 +60,7 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
     model = BindingAffinityModel(
         num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS
     ).to(DEVICE)
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    model.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=False))
     model.eval()
 
     with torch.no_grad():
