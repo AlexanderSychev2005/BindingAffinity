@@ -236,7 +236,7 @@ def get_gemini_explanation(
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash", contents=prompt
+                model="gemini-1.5-flash", contents=prompt
             )
             return response.text
 
