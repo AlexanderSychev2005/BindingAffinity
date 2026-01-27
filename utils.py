@@ -8,6 +8,7 @@ import py3Dmol
 from jinja2 import Environment, FileSystemLoader
 from google import genai
 from decouple import config
+import time
 
 GEMINI_API_KEY = config("GEMINI_API_KEY")
 
@@ -230,11 +231,26 @@ def get_gemini_explanation(
     4. **Conclusion:** Verdict on whether to proceed with this molecule.
     Keep it relatively short (max 150 words). Do not include markdown code blocks (```html), just return the raw HTML tags.
     """
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash", contents=prompt
-        )
-        return response.text
-    except Exception as e:
-        return f"<p class='text-danger'>Error generating explanation: {str(e)}</p>"
+    max_retries = 3
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash", contents=prompt
+            )
+            return response.text
+
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            if "503" in error_msg or "overloaded" in error_msg or "429" in error_msg:
+                if attempt < max_retries - 1:
+                    wait_time = 2 * (attempt + 1)
+                    print(f"Gemini overloaded, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+
+
+            return f"<p class='text-danger'>Error generating explanation: {str(e)}</p>"
+
+    return "<p class='text-danger'>Error: Gemini unavailable after retries.</p>"
