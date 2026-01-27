@@ -1,0 +1,8 @@
+services:
+  binding-predictor:
+    build: .
+    container_name: binding-app
+    ports:
+      - "8000:7860"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}

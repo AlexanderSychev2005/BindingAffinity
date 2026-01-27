@@ -6,6 +6,7 @@ import pandas as pd
 from torch.utils.data import random_split
 from torch_geometric.loader import DataLoader
 from dataset import BindingDataset
+from loss import WeightedMSELoss
 from model_attention import BindingAffinityModel
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -13,7 +14,7 @@ import numpy as np
 from datetime import datetime
 import os
 
-# 2.02
+# 2.02 default parameters
 # BATCH_SIZE = 16
 # LR = 0.00035  # Reduced learning rate
 # WEIGHT_DECAY = 1e-5  # Slightly increased weight decay (regularization)
@@ -23,16 +24,27 @@ import os
 # HIDDEN_CHANNELS = 256
 
 # 1.90 from Optuna
+# BATCH_SIZE = 16
+# LR = 0.000034
+# WEIGHT_DECAY = 1e-6
+# DROPOUT = 0.26
+# EPOCHS = 100
+# HIDDEN_CHANNELS = 256
+# GAT_HEADS = 2
+
+# Weighted Loss
 BATCH_SIZE = 16
-LR = 0.000034
-WEIGHT_DECAY = 1e-6
-DROPOUT = 0.26
+LR = 0.00022
+WEIGHT_DECAY = 1e-5
+DROPOUT = 0.25
 EPOCHS = 100
-HIDDEN_CHANNELS = 256
-GAT_HEADS = 2
+HIDDEN_CHANNELS = 128
+GAT_HEADS = 4
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-LOG_DIR = f"runs/experiment_attention{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+LOG_DIR = (
+    f"runs/experiment_attention{datetime.now().strftime('%Y%m%d_%H%M%S')}_weighted_loss"
+)
 TOP_K = 3
 SAVES_DIR = LOG_DIR + "/models"
 
@@ -128,7 +140,8 @@ def main():
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=8
     )
-    criterion = nn.MSELoss()
+    # criterion = nn.MSELoss()
+    criterion = WeightedMSELoss()
 
     top_models = []
 
@@ -152,7 +165,7 @@ def main():
             end="",
         )
 
-        filename = f"{SAVES_DIR}/model_ep{epoch:03d}_mse{test_loss:.4f}.pth"
+        filename = f"{SAVES_DIR}/model_ep{epoch:03d}_weighted_loss{test_loss:.4f}.pth"
 
         torch.save(model.state_dict(), filename)
         top_models.append({"loss": test_loss, "path": filename, "epoch": epoch})
@@ -173,7 +186,7 @@ def main():
     print("Training finished.")
     print("Top models saved:")
     for i, m in enumerate(top_models):
-        print(f"{i + 1}. {m['path']} (MSE: {m['loss']:.4f})")
+        print(f"{i + 1}. {m['path']} (Weighted Loss: {m['loss']:.4f})")
 
 
 if __name__ == "__main__":

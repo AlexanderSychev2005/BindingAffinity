@@ -1,7 +1,9 @@
 .idea
 .venv
 .ipynb_checkpoints
+__pycache__
 
 /refined-set/
 /data
 /lightning_logs
+.env

@@ -19,10 +19,13 @@ from model_attention import BindingAffinityModel
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_PATH = "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
+MODEL_PATH = (
+    "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
+)
 
 GAT_HEADS = 2
 HIDDEN_CHANNELS = 256
+
 
 def get_inference_data(ligand_smiles, protein_sequence, model_path):
     """
@@ -46,8 +49,10 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path):
     edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
     tokens = [get_protein_features(c) for c in protein_sequence]
-    if len(tokens) > 1200: tokens = tokens[:1200]
-    else: tokens.extend([0] * (1200 - len(tokens)))
+    if len(tokens) > 1200:
+        tokens = tokens[:1200]
+    else:
+        tokens.extend([0] * (1200 - len(tokens)))
     protein_sequence = torch.tensor(tokens, dtype=torch.long).unsqueeze(0).to(DEVICE)
 
     data = Data(x=x, edge_index=edge_index)
@@ -55,7 +60,9 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path):
     num_features = x.shape[1]
 
     # Model loading
-    model = BindingAffinityModel(num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS).to(DEVICE)
+    model = BindingAffinityModel(
+        num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS
+    ).to(DEVICE)
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()
 
@@ -70,7 +77,9 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path):
 
     # Normalize to [0, 1]
     if importance.max() > 0:
-        importance = (importance - importance.min()) / (importance.max() - importance.min())
+        importance = (importance - importance.min()) / (
+            importance.max() - importance.min()
+        )
 
     # Noise reduction
     importance[importance < 0.01] = 0
@@ -93,20 +102,22 @@ def print_atom_scores(mol, importance):
         print(f"Atom {idx} ({symbol}): Importance = {score:.3f} {fire}")
 
 
-
 def get_py3dmol(mol, importance, score):
 
     view = py3Dmol.view(width=1000, height=800)
     view.addModel(Chem.MolToMolBlock(mol), "sdf")
-    view.setBackgroundColor('white')
+    view.setBackgroundColor("white")
 
     # 1. БАЗОВЫЙ СТИЛЬ (ГРУНТОВКА)
     # Задаем единый размер для всей молекулы сразу
     # scale: 0.25 — оптимальный средний размер
-    view.setStyle({}, {
-        'stick': {'color': '#cccccc', 'radius': 0.1},
-        'sphere': {'color': '#cccccc', 'scale': 0.25}
-    })
+    view.setStyle(
+        {},
+        {
+            "stick": {"color": "#cccccc", "radius": 0.1},
+            "sphere": {"color": "#cccccc", "scale": 0.25},
+        },
+    )
 
     red_atoms = []
     orange_atoms = []
@@ -130,48 +141,65 @@ def get_py3dmol(mol, importance, score):
         if i in top_indices and val > 0.1:
             pos = conf.GetAtomPosition(i)
             symbol = mol.GetAtomWithIdx(i).GetSymbol()
-            labels_to_add.append({
-                'text': f"{i}:{symbol}:{val:.2f}",
-                'pos': {'x': pos.x, 'y': pos.y, 'z': pos.z}
-            })
+            labels_to_add.append(
+                {
+                    "text": f"{i}:{symbol}:{val:.2f}",
+                    "pos": {"x": pos.x, "y": pos.y, "z": pos.z},
+                }
+            )
 
     # 3. ПРИМЕНЕНИЕ СТИЛЕЙ
     # Обрати внимание: scale везде 0.25 (или 0.28, чтобы чуть выделить цветные)
     # Мы меняем ТОЛЬКО ЦВЕТ.
 
     if red_atoms:
-        view.addStyle({'serial': red_atoms}, {
-            'sphere': {'color': '#FF0000', 'scale': 0.28},
-            'stick': {'color': '#FF0000', 'radius': 0.12}
-        })
+        view.addStyle(
+            {"serial": red_atoms},
+            {
+                "sphere": {"color": "#FF0000", "scale": 0.28},
+                "stick": {"color": "#FF0000", "radius": 0.12},
+            },
+        )
 
     if orange_atoms:
-        view.addStyle({'serial': orange_atoms}, {
-            'sphere': {'color': '#FF8C00', 'scale': 0.28},
-            'stick': {'color': '#FF8C00', 'radius': 0.12}
-        })
+        view.addStyle(
+            {"serial": orange_atoms},
+            {
+                "sphere": {"color": "#FF8C00", "scale": 0.28},
+                "stick": {"color": "#FF8C00", "radius": 0.12},
+            },
+        )
 
     if blue_atoms:
-        view.addStyle({'serial': blue_atoms}, {
-            'sphere': {'color': '#7777FF', 'scale': 0.28}
-        })
+        view.addStyle(
+            {"serial": blue_atoms}, {"sphere": {"color": "#7777FF", "scale": 0.28}}
+        )
 
     # 4. МЕТКИ
     for label in labels_to_add:
-        view.addLabel(label['text'], {
-            'position': label['pos'],
-            'fontSize': 14,
-            'fontColor': 'white',
-            'backgroundColor': 'black',
-            'backgroundOpacity': 0.7,
-            'borderThickness': 0,
-            'inFront': True,
-            'showBackground': True
-        })
+        view.addLabel(
+            label["text"],
+            {
+                "position": label["pos"],
+                "fontSize": 14,
+                "fontColor": "white",
+                "backgroundColor": "black",
+                "backgroundOpacity": 0.7,
+                "borderThickness": 0,
+                "inFront": True,
+                "showBackground": True,
+            },
+        )
 
     view.zoomTo()
-    view.addLabel(f"Predicted pKd: {float(score):.2f}",
-                  {'position': {'x': -5, 'y': 10, 'z': 0}, 'backgroundColor': 'black', 'fontColor': 'white'})
+    view.addLabel(
+        f"Predicted pKd: {float(score):.2f}",
+        {
+            "position": {"x": -5, "y": 10, "z": 0},
+            "backgroundColor": "black",
+            "fontColor": "white",
+        },
+    )
 
     return view
 
@@ -190,22 +218,30 @@ def get_ngl(mol, importance):
     view = nv.NGLWidget(structure)
     view.clear_representations()
 
-    view.add_representation('ball+stick', colorScheme='bfactor', colorScale=['blue', 'white', 'red'], colorDomain=[10, 80], radiusScale=1.0)
+    view.add_representation(
+        "ball+stick",
+        colorScheme="bfactor",
+        colorScale=["blue", "white", "red"],
+        colorDomain=[10, 80],
+        radiusScale=1.0,
+    )
 
     indices_sorted = np.argsort(importance)[::-1]
     top_indices = indices_sorted[:15]
 
     selection_str = "@" + ",".join(map(str, top_indices))
-    view.add_representation('label',
-                            selection=selection_str,  # Подписываем только избранных
-                            labelType='atomindex',  # Показывать Индекс (0, 1, 2...)
-                            color='black',  # Черный текст
-                            radius=2.0,  # Размер шрифта (попробуйте 1.5 - 3.0)
-                            zOffset=1.0)  # Чуть сдвинуть к камере
-
+    view.add_representation(
+        "label",
+        selection=selection_str,  # Подписываем только избранных
+        labelType="atomindex",  # Показывать Индекс (0, 1, 2...)
+        color="black",  # Черный текст
+        radius=2.0,  # Размер шрифта (попробуйте 1.5 - 3.0)
+        zOffset=1.0,
+    )  # Чуть сдвинуть к камере
 
     view.center()
     return view
+
 
 if __name__ == "__main__":
     smiles = "COc1ccc(S(=O)(=O)N(CC(C)C)C[C@@H](O)[C@H](Cc2ccccc2)NC(=O)O[C@@H]2C[C@@H]3NC(=O)O[C@@H]3C2)cc1"
@@ -222,4 +258,3 @@ if __name__ == "__main__":
 
     ngl_widget = get_ngl(mol, importance)
     nv.write_html(file_name_ngl, ngl_widget)
-

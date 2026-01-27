@@ -1,10 +1,20 @@
-torch
-pytorch-lightning
-optuna
+fastapi==0.128.0
+uvicorn[standard]==0.38.0
+python-multipart==0.0.21
+requests==2.32.5
 
-numpy
-pandas
+python-decouple==3.8
+py3Dmol==2.5.4
 
-rdkit
-biopython
+numpy==2.2.6
+pandas==2.3.3
+
+rdkit==2025.9.1
+
+google-genai==1.53.0
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch>=2.5.0
+torch-geometric>=2.7.0
 

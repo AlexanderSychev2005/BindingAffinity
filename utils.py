@@ -7,21 +7,24 @@ from rdkit.Chem import Descriptors
 import py3Dmol
 from jinja2 import Environment, FileSystemLoader
 from google import genai
-from google.genai import types
 from decouple import config
 
 GEMINI_API_KEY = config("GEMINI_API_KEY")
 
-# Убираем лишние импорты (nglview тут больше не нужен для standalone HTML)
+
 from dataset import get_atom_features, get_protein_features
 from model_attention import BindingAffinityModel
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# Обновите путь, если нужно
-MODEL_PATH = "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
 
-GAT_HEADS = 2
-HIDDEN_CHANNELS = 256
+# MODEL_PATH = "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
+#
+# GAT_HEADS = 2
+# HIDDEN_CHANNELS = 256
+
+MODEL_PATH = "runs/experiment_attention20260127_055340_weighted_loss/models/model_ep028_weighted_loss6.7715.pth"
+GAT_HEADS = 4
+HIDDEN_CHANNELS = 128
 
 
 def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
@@ -45,14 +48,18 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
         tokens = tokens[:1200]
     else:
         tokens.extend([0] * (1200 - len(tokens)))
-    protein_sequence_tensor = torch.tensor(tokens, dtype=torch.long).unsqueeze(0).to(DEVICE)
+    protein_sequence_tensor = (
+        torch.tensor(tokens, dtype=torch.long).unsqueeze(0).to(DEVICE)
+    )
 
     data = Data(x=x, edge_index=edge_index)
     batch = Batch.from_data_list([data]).to(DEVICE)
     num_features = x.shape[1]
 
     # Model
-    model = BindingAffinityModel(num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS).to(DEVICE)
+    model = BindingAffinityModel(
+        num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS
+    ).to(DEVICE)
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()
 
@@ -65,7 +72,9 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
     importance = attention_weights[:, :real_prot_len].max(dim=1).values.cpu().numpy()
 
     if importance.max() > 0:
-        importance = (importance - importance.min()) / (importance.max() - importance.min())
+        importance = (importance - importance.min()) / (
+            importance.max() - importance.min()
+        )
 
     importance[importance < 0.01] = 0
     return mol, importance, pred.item()
@@ -112,19 +121,16 @@ def get_lipinski_properties(mol):
         "violations": violations,
         "status_text": status,
         "css_class": css_class,
-        "bad_params": ", ".join(bad_params) if bad_params else "None"
+        "bad_params": ", ".join(bad_params) if bad_params else "None",
     }
 
 
 def get_py3dmol_view(mol, importance):
     view = py3Dmol.view(width="100%", height="600px")
     view.addModel(Chem.MolToMolBlock(mol), "sdf")
-    view.setBackgroundColor('white')
+    view.setBackgroundColor("white")
 
-    view.setStyle({}, {
-        'stick': {'radius': 0.15},
-        'sphere': {'scale': 0.25}
-    })
+    view.setStyle({}, {"stick": {"radius": 0.15}, "sphere": {"scale": 0.25}})
 
     indices_sorted = np.argsort(importance)[::-1]
     top_indices = set(indices_sorted[:15])
@@ -137,16 +143,19 @@ def get_py3dmol_view(mol, importance):
             symbol = mol.GetAtomWithIdx(i).GetSymbol()
             label_text = f"{i}:{symbol}:{val:.2f}"
 
-            view.addLabel(label_text, {
-                'position': {'x': pos.x, 'y': pos.y, 'z': pos.z},
-                'fontSize': 14,
-                'fontColor': 'white',
-                'backgroundColor': 'black',
-                'backgroundOpacity': 0.7,
-                'borderThickness': 0,
-                'inFront': True,
-                'showBackground': True
-            })
+            view.addLabel(
+                label_text,
+                {
+                    "position": {"x": pos.x, "y": pos.y, "z": pos.z},
+                    "fontSize": 14,
+                    "fontColor": "white",
+                    "backgroundColor": "black",
+                    "backgroundOpacity": 0.7,
+                    "borderThickness": 0,
+                    "inFront": True,
+                    "showBackground": True,
+                },
+            )
     view.zoomTo()
     return view
 
@@ -166,32 +175,40 @@ def save_standalone_ngl_html(mol, importance, filepath):
     indices_sorted = np.argsort(importance)[::-1]
     top_indices = indices_sorted[:15]
 
-
     selection_list = [str(i) for i in top_indices]
     selection_str = "@" + ",".join(selection_list)
 
     if not selection_list:
         selection_str = "@-1"
 
+    env = Environment(loader=FileSystemLoader("templates"))
+    template = env.get_template("ngl_view.html")
 
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('ngl_view.html')
-
-    rendered_html = template.render(pdb_block=final_pdb_block, selection_str=selection_str)
+    rendered_html = template.render(
+        pdb_block=final_pdb_block, selection_str=selection_str
+    )
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
 
-def get_gemini_explanation(ligand_smiles, protein_sequence, affinity, top_atoms, lipinski):
+def get_gemini_explanation(
+    ligand_smiles, protein_sequence, affinity, top_atoms, lipinski
+):
     if not GEMINI_API_KEY:
         return "<p class='text-warning'>API Key for Gemini not found. Please set GOOGLE_API_KEY environment variable.</p>"
 
     # Forming a list of top important atoms for a prompt
-    atoms_desc = ", ".join([f"{a['symbol']}(idx {a['id']}, score {a['score']})" for a in top_atoms[:10]])
+    atoms_desc = ", ".join(
+        [f"{a['symbol']}(idx {a['id']}, score {a['score']})" for a in top_atoms[:10]]
+    )
 
     # Cut a protein to not spend too many tokens
-    prot_short = protein_sequence[:100] + "..." if len(protein_sequence) > 100 else protein_sequence
+    prot_short = (
+        protein_sequence[:100] + "..."
+        if len(protein_sequence) > 100
+        else protein_sequence
+    )
 
     prompt = f"""
     You are an expert Computational Chemist and Drug Discovery Scientist.
@@ -216,8 +233,7 @@ def get_gemini_explanation(ligand_smiles, protein_sequence, affinity, top_atoms,
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+            model="gemini-2.5-flash", contents=prompt
         )
         return response.text
     except Exception as e:

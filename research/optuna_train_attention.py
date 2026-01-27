@@ -7,11 +7,12 @@ import numpy as np
 from torch_geometric.loader import DataLoader
 from torch.utils.data import random_split
 from dataset import BindingDataset
+from loss import WeightedMSELoss
 from model_attention import BindingAffinityModel
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_TRIALS = 50
-MAX_EPOCHS_PER_TRIAL = 60
+MAX_EPOCHS_PER_TRIAL = 50
 LOG_DIR = "runs"
 DATA_CSV = "pdbbind_refined_dataset.csv"
 
@@ -88,7 +89,8 @@ def objective(trial):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=5
     )
-    criterion = nn.MSELoss()
+    # criterion = nn.MSELoss()
+    criterion = WeightedMSELoss()
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -118,7 +120,7 @@ if __name__ == "__main__":
         direction="minimize",
         pruner=optuna.pruners.MedianPruner(n_min_trials=5, n_warmup_steps=10),
         storage=storage_name,
-        study_name="binding_prediction_optimization_attentionV2",
+        study_name="binding_prediction_optimization_attentionWeightedLoss",
         load_if_exists=True,
     )
     print("Start hyperparameter optimization...")
