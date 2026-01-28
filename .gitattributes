@@ -1,1 +1,2 @@
 models/model_ep028_weighted_loss6.7715.pth filter=lfs diff=lfs merge=lfs -text
+models/model_ep041_attention_mse1.9153.pth filter=lfs diff=lfs merge=lfs -text
