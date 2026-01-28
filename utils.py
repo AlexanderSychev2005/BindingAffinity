@@ -23,7 +23,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # GAT_HEADS = 2
 # HIDDEN_CHANNELS = 256
 
-MODEL_PATH = "models/model_ep028_weighted_loss6.7715.pth"
+MODEL_PATH = "models/model_ep041_attention_mse1.9153.pth"
 GAT_HEADS = 4
 HIDDEN_CHANNELS = 128
 
