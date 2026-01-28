@@ -20,12 +20,12 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # MODEL_PATH = "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
 #
-# GAT_HEADS = 2
-# HIDDEN_CHANNELS = 256
+GAT_HEADS = 2
+HIDDEN_CHANNELS = 256
 
 MODEL_PATH = "models/model_ep041_attention_mse1.9153.pth"
-GAT_HEADS = 4
-HIDDEN_CHANNELS = 128
+# GAT_HEADS = 4
+# HIDDEN_CHANNELS = 128
 
 
 def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
