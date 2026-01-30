@@ -28,7 +28,6 @@ We compared multiple architectures on the **PDBbind Refined** dataset. The Hybri
 | GAT + 1 CNN for proteins + Cross-Attention | 1.3867  | 1.0947  | 0.7013  |
 
 
-
 ## Explainability (XAI)
 The key moment is that the model does not give only a number, but an asnwer why it predicted that specific number.
 1.  Extracts attention weights from the Cross-Attention layer.
