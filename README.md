@@ -11,8 +11,12 @@ license: mit
 # 💊 Drug Binding Affinity Prediction with GNNs + CNN + Cross-Attention & LLM Interpretation
 This project is the implementation of the Deep Learning model to predict the **Binding Affinity ($pK_d$)** between drug candidates (ligand) and target proteins. The feature of that system is that it solves the "Black Box" problem in drug discovery field by presenting an **Explainable AI (XAI)** module powered by **Cross-Attention weights** and **LLM interpretation**, which allows researchers to visualize the active site of the ligand and which atoms play a vital role in the binding process.
 
+
 ## Architecture: The "Hybrid" Approach
 The model uses a dual-encoder architecture with a Cross-Attention mechanism, mimicking the physical binding process:
+
+<img width="3756" height="1797" alt="binding_affinity drawio" src="https://github.com/user-attachments/assets/1e510205-c9c2-468d-8372-2a8a0b45aae7" />
+
 1.  **Ligand Encoder (Graph):**
      * **GAT (Graph Attention Network):** Treats atoms as nodes and bonds as edges. Uses 4 attention heads to capture complex chemical substructures.
 2.  **Protein Encoder (Sequence):** 
