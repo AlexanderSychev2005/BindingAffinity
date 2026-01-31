@@ -13,7 +13,9 @@ from torch.utils.data import random_split
 from train_attention import GAT_HEADS, DROPOUT, HIDDEN_CHANNELS
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_PATH = "runs/experiment_attention20260123_103840_with_additional_data_scheduler/models/model_ep032_mse2.0264.pth"
+MODEL_PATH = (
+    "runs/experiment_attention20260124_104439_optuna/models/model_ep041_mse1.9153.pth"
+)
 
 
 def set_seed(seed=42):
@@ -92,9 +94,9 @@ def predict_and_plot():
     )
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plot_file = "final_results_gat.png"
+    plot_file = "final_results.png"
     plt.savefig(plot_file)
-    print(f"График сохранен в {plot_file}")
+    print(f"Plot is saved to {plot_file}")
     plt.show()
 
 

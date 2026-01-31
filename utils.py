@@ -24,6 +24,7 @@ GAT_HEADS = 2
 HIDDEN_CHANNELS = 256
 
 MODEL_PATH = "models/model_ep041_attention_mse1.9153.pth"
+# MODEL_PATH = "models/model_ep028_weighted_loss6.7715.pth"
 # GAT_HEADS = 4
 # HIDDEN_CHANNELS = 128
 
@@ -61,7 +62,9 @@ def get_inference_data(ligand_smiles, protein_sequence, model_path=MODEL_PATH):
     model = BindingAffinityModel(
         num_features, hidden_channels=HIDDEN_CHANNELS, gat_heads=GAT_HEADS
     ).to(DEVICE)
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=False))
+    model.load_state_dict(
+        torch.load(model_path, map_location=DEVICE, weights_only=False)
+    )
     model.eval()
 
     with torch.no_grad():
@@ -236,7 +239,7 @@ def get_gemini_explanation(
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash-lite", contents=prompt
+                model="gemini-2.5-flash", contents=prompt
             )
             return response.text
 
@@ -249,7 +252,6 @@ def get_gemini_explanation(
                     print(f"Gemini overloaded, retrying in {wait_time}s...")
                     time.sleep(wait_time)
                     continue
-
 
             return f"<p class='text-danger'>Error generating explanation: {str(e)}</p>"
 

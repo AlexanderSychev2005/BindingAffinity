@@ -244,7 +244,7 @@ def get_ngl(mol, importance):
 
 
 if __name__ == "__main__":
-    smiles = "COc1ccc(S(=O)(=O)N(CC(C)C)C[C@@H](O)[C@H](Cc2ccccc2)NC(=O)O[C@@H]2C[C@@H]3NC(=O)O[C@@H]3C2)cc1"
+    smiles = "Cc1cc(C)cc(c1)CN2C(=O)N(Cc3cc(C)cc(C)c3)[C@H](Cc4cc(C)cc(C)c4)[C@H](O)[C@@H]2O"
     protein = "PQITLWKRPLVTIKIGGQLKEALLDTGADDTVIEEMSLPGRWKPKMIGGIGGFIKVRQYDQIIIEIAGHKAIGTVLVGPTPVNIIGRNLLTQIGATLNF"
     affinity = 11.92
 

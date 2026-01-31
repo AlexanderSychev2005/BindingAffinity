@@ -24,27 +24,34 @@ import os
 # HIDDEN_CHANNELS = 256
 
 # 1.90 from Optuna
-# BATCH_SIZE = 16
-# LR = 0.000034
-# WEIGHT_DECAY = 1e-6
-# DROPOUT = 0.26
-# EPOCHS = 100
-# HIDDEN_CHANNELS = 256
-# GAT_HEADS = 2
+BATCH_SIZE = 16
+LR = 0.000034
+WEIGHT_DECAY = 1e-6
+DROPOUT = 0.26
+EPOCHS = 100
+HIDDEN_CHANNELS = 256
+GAT_HEADS = 2
 
 # Weighted Loss
-BATCH_SIZE = 16
-LR = 0.00022
-WEIGHT_DECAY = 1e-5
-DROPOUT = 0.25
-EPOCHS = 100
-HIDDEN_CHANNELS = 128
-GAT_HEADS = 4
+# BATCH_SIZE = 16
+# LR = 0.00022
+# WEIGHT_DECAY = 1e-5
+# DROPOUT = 0.25
+# EPOCHS = 100
+# HIDDEN_CHANNELS = 128
+# GAT_HEADS = 4
+
+# Attention improved
+# BATCH_SIZE = 16
+# LR = 0.0001
+# WEIGHT_DECAY = 1e-4
+# DROPOUT = 0.35
+# EPOCHS = 100
+# HIDDEN_CHANNELS = 256
+# GAT_HEADS = 4
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-LOG_DIR = (
-    f"runs/experiment_attention{datetime.now().strftime('%Y%m%d_%H%M%S')}_weighted_loss"
-)
+LOG_DIR = f"runs/attention_transformer{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 TOP_K = 3
 SAVES_DIR = LOG_DIR + "/models"
 
@@ -140,8 +147,8 @@ def main():
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=8
     )
-    # criterion = nn.MSELoss()
-    criterion = WeightedMSELoss()
+    criterion = nn.MSELoss()
+    # criterion = WeightedMSELoss()
 
     top_models = []
 

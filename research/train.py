@@ -13,17 +13,34 @@ import numpy as np
 from datetime import datetime
 import os
 
+# GAT V2
+# BATCH_SIZE = 16
+# LR = 0.0005
+# WEIGHT_DECAY = 1e-5
+# EPOCS = 100
+# DROPOUT = 0.4
+# GAT_HEADS = 4
+# HIDDEN_CHANNELS = 256
 
+# GAT
+# BATCH_SIZE = 16
+# LR = 0.00064
+# WEIGHT_DECAY = 7.06e-6
+# EPOCS = 100
+# DROPOUT = 0.325
+# GAT_HEADS = 2
+# HIDDEN_CHANNELS = 256
+
+# GCN
 BATCH_SIZE = 16
-LR = 0.00064
+LR = 0.001
 WEIGHT_DECAY = 7.06e-6
 EPOCS = 100
-DROPOUT = 0.325
-GAT_HEADS = 2
+DROPOUT = 0.3
 HIDDEN_CHANNELS = 256
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-LOG_DIR = f"runs/experiment_scheduler{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+LOG_DIR = f"runs/GATV2{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 TOP_K = 3
 SAVES_DIR = LOG_DIR + "/models"
 

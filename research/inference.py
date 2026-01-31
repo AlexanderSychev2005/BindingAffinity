@@ -10,10 +10,10 @@ from model import BindingAffinityModel
 from tqdm import tqdm
 from scipy.stats import pearsonr
 from torch.utils.data import random_split
-from train import GAT_HEADS, DROPOUT, HIDDEN_CHANNELS
+from train import DROPOUT, HIDDEN_CHANNELS
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_PATH = "runs/experiment_20260122_230138_GAT_without_formal_charge_chirality_ring_scheduler/models/model_ep092_mse2.3805.pth"
+MODEL_PATH = "runs/GCN20260128_223529/models/model_ep091_mse2.3011.pth"
 
 
 def set_seed(seed=42):
@@ -46,7 +46,7 @@ def predict_and_plot():
     model = BindingAffinityModel(
         num_node_features=num_features,
         hidden_channels=HIDDEN_CHANNELS,
-        gat_heads=GAT_HEADS,
+        # gat_heads=GAT_HEADS,
         dropout=DROPOUT,
     ).to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PATH))
@@ -92,9 +92,9 @@ def predict_and_plot():
     )
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plot_file = "final_results_gat.png"
+    plot_file = "final_results.png"
     plt.savefig(plot_file)
-    print(f"График сохранен в {plot_file}")
+    print(f"Plot is saved to {plot_file}")
     plt.show()
 
 

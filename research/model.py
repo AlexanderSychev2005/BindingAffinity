@@ -36,43 +36,14 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-# class LigandGNN(nn.Module): # GCN CONV
-#     def __init__(self, input_dim, hidden_channels):
-#         super().__init__()
-#         self.hidden_channels = hidden_channels
-#
-#         self.conv1 = GCNConv(input_dim, hidden_channels)
-#         self.conv2 = GCNConv(hidden_channels, hidden_channels)
-#         self.conv3 = GCNConv(hidden_channels, hidden_channels)
-#         self.dropout = nn.Dropout(0.2)
-#
-#     def forward(self, x, edge_index, batch):
-#         x = self.conv1(x, edge_index)
-#         x = x.relu()
-#         x = self.dropout(x)
-#
-#         x = self.conv2(x, edge_index)
-#         x = x.relu()
-#         x = self.conv3(x, edge_index)
-#         x = self.dropout(x)
-#
-#         # Averaging nodes and got the molecula vector
-#         x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
-#         return x
-
-
-class LigandGNN(nn.Module):
-    def __init__(self, input_dim, hidden_channels, heads=4, dropout=0.2):
+class LigandGNN(nn.Module):  # GCN CONV
+    def __init__(self, input_dim, hidden_channels, dropout):
         super().__init__()
-        # Heads=4 means we use 4 attention heads
-        # Concat=False, we average the heads instead of concatenating them, to keep the output dimension same as hidden_channels
-        self.conv1 = GATConv(input_dim, hidden_channels, heads=heads, concat=False)
-        self.conv2 = GATConv(
-            hidden_channels, hidden_channels, heads=heads, concat=False
-        )
-        self.conv3 = GATConv(
-            hidden_channels, hidden_channels, heads=heads, concat=False
-        )
+        self.hidden_channels = hidden_channels
+
+        self.conv1 = GCNConv(input_dim, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, edge_index, batch):
@@ -82,13 +53,42 @@ class LigandGNN(nn.Module):
 
         x = self.conv2(x, edge_index)
         x = x.relu()
+        x = self.conv3(x, edge_index)
         x = self.dropout(x)
 
-        x = self.conv3(x, edge_index)
-
-        # Global Mean Pooling
-        x = global_mean_pool(x, batch)
+        # Averaging nodes and got the molecula vector
+        x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
         return x
+
+
+# class LigandGNN(nn.Module):
+#     def __init__(self, input_dim, hidden_channels, heads=4, dropout=0.2):
+#         super().__init__()
+#         # Heads=4 means we use 4 attention heads
+#         # Concat=False, we average the heads instead of concatenating them, to keep the output dimension same as hidden_channels
+#         self.conv1 = GATConv(input_dim, hidden_channels, heads=heads, concat=False)
+#         self.conv2 = GATConv(
+#             hidden_channels, hidden_channels, heads=heads, concat=False
+#         )
+#         self.conv3 = GATConv(
+#             hidden_channels, hidden_channels, heads=heads, concat=False
+#         )
+#         self.dropout = nn.Dropout(dropout)
+#
+#     def forward(self, x, edge_index, batch):
+#         x = self.conv1(x, edge_index)
+#         x = x.relu()
+#         x = self.dropout(x)
+#
+#         x = self.conv2(x, edge_index)
+#         x = x.relu()
+#         x = self.dropout(x)
+#
+#         x = self.conv3(x, edge_index)
+#
+#         # Global Mean Pooling
+#         x = global_mean_pool(x, batch)
+#         return x
 
 
 class ProteinTransformer(nn.Module):
@@ -130,7 +130,7 @@ class BindingAffinityModel(nn.Module):
         self.ligand_gnn = LigandGNN(
             input_dim=num_node_features,
             hidden_channels=hidden_channels,
-            heads=gat_heads,
+            # heads=gat_heads,
             dropout=dropout,
         )
         # Tower 2 - Protein Transformer
