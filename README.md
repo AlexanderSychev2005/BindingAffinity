@@ -9,6 +9,8 @@ license: mit
 ---
 
 # 💊 Drug Binding Affinity Prediction with GNNs + CNN + Cross-Attention & LLM Interpretation
+<img width="1284" height="582" alt="image" src="https://github.com/user-attachments/assets/cb814000-5ae2-4967-8b9f-f25869dd5d53" />
+
 This project is the implementation of the Deep Learning model to predict the **Binding Affinity ($pK_d$)** between drug candidates (ligand) and target proteins. The feature of that system is that it solves the "Black Box" problem in drug discovery field by presenting an **Explainable AI (XAI)** module powered by **Cross-Attention weights** and **LLM interpretation**, which allows researchers to visualize the active site of the ligand and which atoms play a vital role in the binding process.
 
 
