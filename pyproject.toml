@@ -1,0 +1,37 @@
+[project]
+name = "bindingaffinity"
+version = "0.1.0"
+description = "Protein-Ligand Binding Affinity Prediction using GNN and ESM-2"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Alex", email = "alexandersychev2005@gmail.com" }
+]
+
+dependencies = [
+    "rdkit>=2026.3.3",
+    "torch==2.5.1",
+    "torch-geometric>=2.8.0",
+    "pandas>=3.0.3",
+    "numpy>=2.4.6",
+    "biopython>=1.87",
+    "fair-esm>=2.0.0",
+    "scikit-learn>=1.9.0",
+    "tqdm>=4.68.2",
+    "requests>=2.34.2",
+    "torchvision",
+    "torchaudio",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
+torchaudio = { index = "pytorch-cu124" }
+
+[tool.uv]
+package = false
