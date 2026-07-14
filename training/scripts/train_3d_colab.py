@@ -171,7 +171,10 @@ def main():
         "--fp16", action="store_true", help="Enable Automatic Mixed Precision (AMP)"
     )
     parser.add_argument(
-        "--workers", type=int, default=2, help="Number of dataloader workers"
+        "--resume", type=str, default="", help="Path to .pth model to resume from"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=4, help="Number of dataloader workers"
     )
     args = parser.parse_args()
 
@@ -235,6 +238,11 @@ def main():
         gat_heads=4,
         dropout=0.3,
     ).to(DEVICE)
+    
+    if args.resume:
+        print(f"Loading weights from {args.resume}...")
+        model.load_state_dict(torch.load(args.resume, map_location=DEVICE))
+        print("Weights loaded successfully!")
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay
