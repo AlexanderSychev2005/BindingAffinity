@@ -6,5 +6,6 @@ __pycache__
 /refined-set/
 .env
 *.zip
-*.csv
 /runs/
+general-set/
+

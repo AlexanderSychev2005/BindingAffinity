@@ -39,7 +39,14 @@ def parse_pdb_ca_seq(pdb_file):
     return seq
 
 
+import argparse
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", type=str, default="general-set")
+    parser.add_argument("--csv-file", type=str, default="pdbbind_general_dataset.csv")
+    args = parser.parse_args()
+    
     print("Loading ESM-2 model (facebook/esm2_t12_35M_UR50D)...")
     tokenizer = AutoTokenizer.from_pretrained("facebook/esm2_t12_35M_UR50D")
     model = EsmModel.from_pretrained("facebook/esm2_t12_35M_UR50D")
@@ -50,16 +57,16 @@ def main():
     print(f"Model loaded on {device}")
 
     print("Loading dataset...")
-    df = pd.read_csv("pdbbind_refined_dataset.csv").dropna()
+    df = pd.read_csv(args.csv_file).dropna()
     unique_pdbs = df[["pdb_id"]].drop_duplicates()
     print(f"Found {len(unique_pdbs)} unique proteins to process.")
 
-    os.makedirs("refined-set", exist_ok=True)
+    os.makedirs(args.data_dir, exist_ok=True)
 
     for _, row in tqdm(unique_pdbs.iterrows(), total=len(unique_pdbs)):
         pdb_id = row["pdb_id"]
 
-        dir_path = os.path.join("refined-set", pdb_id)
+        dir_path = os.path.join(args.data_dir, pdb_id)
         if not os.path.exists(dir_path):
             continue
 
@@ -67,11 +74,12 @@ def main():
         if os.path.exists(cache_path):
             continue
 
-        pdb_path = os.path.join(dir_path, f"{pdb_id}_protein.pdb")
-        if not os.path.exists(pdb_path):
+        prot_path = os.path.join(args.data_dir, pdb_id, f"{pdb_id}_protein.pdb")
+        out_path = os.path.join(args.data_dir, pdb_id, "esm2_35m.pt")
+        if os.path.exists(out_path):
             continue
 
-        seq = parse_pdb_ca_seq(pdb_path)
+        seq = parse_pdb_ca_seq(prot_path)
         if len(seq) == 0:
             continue
 

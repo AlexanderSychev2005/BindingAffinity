@@ -137,13 +137,13 @@ def main():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/content/dataset_fast/refined-set",
-        help="Path to unzipped refined-set",
+        default="/content/dataset_fast/general-set",
+        help="Path to unzipped general-set",
     )
     parser.add_argument(
         "--csv-file",
         type=str,
-        default="pdbbind_refined_dataset.csv",
+        default="pdbbind_general_dataset.csv",
         help="Path to csv dataset",
     )
     parser.add_argument(
