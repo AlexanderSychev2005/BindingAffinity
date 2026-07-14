@@ -4,10 +4,7 @@
 __pycache__
 
 /refined-set/
-/data
-/lightning_logs
 .env
-PDBbind_v2020_refined
 *.zip
 *.csv
 /runs/

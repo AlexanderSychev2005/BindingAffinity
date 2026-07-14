@@ -131,13 +131,10 @@ class BindingAffinity3DModel(nn.Module):
         # Tower 2 - Protein Deep 1D CNN
         self.prot_cnn = nn.Sequential(
             nn.Conv1d(num_protein_features, hidden_channels, kernel_size=5, padding=2),
-            nn.BatchNorm1d(hidden_channels),
             nn.ReLU(),
             nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.BatchNorm1d(hidden_channels),
             nn.ReLU(),
             nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.BatchNorm1d(hidden_channels),
             nn.ReLU(),
         )
 
