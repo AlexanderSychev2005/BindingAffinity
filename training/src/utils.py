@@ -223,7 +223,7 @@ def get_gemini_explanation(
     2. **Target Protein (Start):** `{prot_short}`
     3. **Predicted Binding Affinity (pKd):** {affinity} (Note: >7 is usually good, <5 is weak).
     4. **Top Active Atoms (Attention Weights):** {atoms_desc}. These atoms had the highest attention scores in the Graph Neural Network with attention.
-    5. **Lipinski Properties:** {lipinski['status_text']} (Violations: {lipinski['violations']}).
+    5. **Lipinski Properties:** {lipinski["status_text"]} (Violations: {lipinski["violations"]}).
     
     **Task:**
     Write a concise, professional scientific summary (in HTML format, use <p>, <ul>, <li>, <b>).

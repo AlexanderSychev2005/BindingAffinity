@@ -4,6 +4,7 @@ import pandas as pd
 from rdkit import Chem, rdBase
 from torch_geometric.data import Data
 from torch.utils.data import Dataset, random_split
+import os
 
 rdBase.DisableLog("rdApp.*")
 
@@ -144,6 +145,54 @@ def get_protein_features(char):
     return prot_vocab.get(char, prot_vocab["UNK"])
 
 
+def parse_pdb_ca(pdb_file):
+    coords = []
+    aa_types = []
+
+    # 3-letter to 1-letter mapping
+    aa_map = {
+        "ALA": "A",
+        "ARG": "R",
+        "ASN": "N",
+        "ASP": "D",
+        "CYS": "C",
+        "GLN": "Q",
+        "GLU": "E",
+        "GLY": "G",
+        "HIS": "H",
+        "ILE": "I",
+        "LEU": "L",
+        "LYS": "K",
+        "MET": "M",
+        "PHE": "F",
+        "PRO": "P",
+        "SER": "S",
+        "THR": "T",
+        "TRP": "W",
+        "TYR": "Y",
+        "VAL": "V",
+    }
+
+    with open(pdb_file, "r") as f:
+        for line in f:
+            if line.startswith("ATOM  "):
+                atom_name = line[12:16].strip()
+                if atom_name == "CA":
+                    res_name = line[17:20].strip()
+                    x = float(line[30:38].strip())
+                    y = float(line[38:46].strip())
+                    z = float(line[46:54].strip())
+                    coords.append([x, y, z])
+                    aa_types.append(get_protein_features(aa_map.get(res_name, "X")))
+
+    if not coords:
+        return None, None
+
+    return torch.tensor(aa_types, dtype=torch.long), torch.tensor(
+        coords, dtype=torch.float
+    )
+
+
 class BindingDataset(Dataset):
     def __init__(self, dataframe, max_seq_length=1000):
         self.data = dataframe
@@ -207,3 +256,87 @@ if __name__ == "__main__":
 
     print(len(train_dataset))
     print(len(test_dataset))
+
+
+class BindingDataset3D(Dataset):
+    def __init__(
+        self, dataframe, data_dir="refined-set", max_nodes=1000, dist_threshold=8.0
+    ):
+        self.data = dataframe
+        self.data_dir = data_dir
+        self.max_nodes = max_nodes
+        self.dist_threshold = dist_threshold
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        row = self.data.iloc[idx]
+        pdb_id = row["pdb_id"]
+        if isinstance(pdb_id, str) and "E+" in pdb_id:
+            try:
+                parts = pdb_id.split("E+")
+                pdb_id = str(int(float(parts[0]))) + "e" + parts[1]
+            except:
+                pass
+        smiles = row["smiles"]
+        affinity = row["affinity"]
+
+        # Ligand Cache
+        ligand_cache_path = os.path.join(self.data_dir, pdb_id, "ligand_3d.pt")
+        if not os.path.exists(ligand_cache_path):
+            return self.__getitem__((idx + 1) % len(self))
+
+        data_ligand = torch.load(ligand_cache_path, weights_only=False)
+
+        # ESM-2 Cache
+        esm_path = os.path.join(self.data_dir, pdb_id, "esm2_35m.pt")
+        if not os.path.exists(esm_path):
+            return self.__getitem__((idx + 1) % len(self))
+
+        esm_emb = torch.load(esm_path, map_location="cpu", weights_only=True)
+
+        # Protein (3D Graph)
+        pdb_path = os.path.join(self.data_dir, pdb_id, f"{pdb_id}_protein.pdb")
+        if not os.path.exists(pdb_path):
+            return self.__getitem__((idx + 1) % len(self))
+
+        x_protein, pos_protein = parse_pdb_ca(pdb_path)
+        if x_protein is None or len(x_protein) != len(esm_emb):
+            return self.__getitem__((idx + 1) % len(self))
+
+        if len(esm_emb) > self.max_nodes:
+            esm_emb = esm_emb[: self.max_nodes]
+            pos_protein = pos_protein[: self.max_nodes]
+
+        x_prot_features = esm_emb
+
+        # Edges based on distance threshold
+        dist_matrix = torch.cdist(pos_protein, pos_protein)
+        edge_index_protein = (
+            (dist_matrix < self.dist_threshold).nonzero(as_tuple=False).t().contiguous()
+        )
+        # Remove self-loops
+        mask = edge_index_protein[0] != edge_index_protein[1]
+        edge_index_protein = edge_index_protein[:, mask]
+
+        # Edge attributes: log distance in primary sequence
+        seq_dist = (
+            torch.abs(edge_index_protein[0] - edge_index_protein[1])
+            .float()
+            .unsqueeze(1)
+        )
+        edge_attr_protein = torch.log1p(seq_dist)
+
+        y = torch.tensor([affinity], dtype=torch.float)
+
+        # We use separate Data objects for ligand and protein
+        # so PyG's DataLoader can batch them properly.
+        data_protein = Data(
+            x=x_prot_features,
+            pos=pos_protein,
+            edge_index=edge_index_protein,
+            edge_attr=edge_attr_protein,
+        )
+
+        return data_ligand, data_protein, y
