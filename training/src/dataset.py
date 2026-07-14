@@ -289,27 +289,18 @@ class BindingDataset3D(Dataset):
 
         data_ligand = torch.load(ligand_cache_path, weights_only=False)
 
-        # ESM-2 Cache
-        esm_path = os.path.join(self.data_dir, pdb_id, "esm2_35m.pt")
-        if not os.path.exists(esm_path):
+        # Protein Pocket (3D Graph)
+        pocket_path = os.path.join(self.data_dir, pdb_id, "pocket_graph.pt")
+        if not os.path.exists(pocket_path):
             return self.__getitem__((idx + 1) % len(self))
 
-        esm_emb = torch.load(esm_path, map_location="cpu", weights_only=True)
+        pocket_dict = torch.load(pocket_path, weights_only=True)
+        x_prot_features = pocket_dict["x"]
+        pos_protein = pocket_dict["pos"]
 
-        # Protein (3D Graph)
-        pdb_path = os.path.join(self.data_dir, pdb_id, f"{pdb_id}_protein.pdb")
-        if not os.path.exists(pdb_path):
-            return self.__getitem__((idx + 1) % len(self))
-
-        x_protein, pos_protein = parse_pdb_ca(pdb_path)
-        if x_protein is None or len(x_protein) != len(esm_emb):
-            return self.__getitem__((idx + 1) % len(self))
-
-        if len(esm_emb) > self.max_nodes:
-            esm_emb = esm_emb[: self.max_nodes]
+        if len(x_prot_features) > self.max_nodes:
+            x_prot_features = x_prot_features[: self.max_nodes]
             pos_protein = pos_protein[: self.max_nodes]
-
-        x_prot_features = esm_emb
 
         # Edges based on distance threshold
         dist_matrix = torch.cdist(pos_protein, pos_protein)

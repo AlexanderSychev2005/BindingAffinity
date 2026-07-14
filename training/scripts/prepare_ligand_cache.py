@@ -13,9 +13,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "s
 from dataset import get_atom_features
 
 
+import argparse
+
 def main():
-    data_dir = "refined-set"
-    csv_file = "pdbbind_refined_dataset.csv"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", type=str, default="general-set")
+    parser.add_argument("--csv-file", type=str, default="pdbbind_general_dataset.csv")
+    args = parser.parse_args()
+    
+    data_dir = args.data_dir
+    csv_file = args.csv_file
 
     if not os.path.exists(csv_file):
         print(f"Dataset CSV {csv_file} not found!")

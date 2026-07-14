@@ -128,15 +128,11 @@ class BindingAffinity3DModel(nn.Module):
         self.egnn_lig2 = EGNNConv(hidden_channels, hidden_channels, edge_dim=1)
         self.egnn_lig3 = EGNNConv(hidden_channels, hidden_channels, edge_dim=1)
 
-        # Tower 2 - Protein Deep 1D CNN
-        self.prot_cnn = nn.Sequential(
-            nn.Conv1d(num_protein_features, hidden_channels, kernel_size=5, padding=2),
-            nn.ReLU(),
-            nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-        )
+        # Tower 2 - Protein 3D Pocket EGNN
+        self.prot_embed = nn.Linear(num_protein_features, hidden_channels)
+        self.egnn_prot1 = EGNNConv(hidden_channels, hidden_channels)
+        self.egnn_prot2 = EGNNConv(hidden_channels, hidden_channels)
+        self.egnn_prot3 = EGNNConv(hidden_channels, hidden_channels)
 
         # Cross-Attention Layer
         self.cross_attention = CrossAttentionLayer(
@@ -176,15 +172,19 @@ class BindingAffinity3DModel(nn.Module):
 
         ligand_dense, ligand_mask = to_dense_batch(x_l, batch_ligand)
 
-        # 2. Protein processing (Deep CNN over ESM-2)
-        protein_dense, protein_mask = to_dense_batch(x_protein, batch_protein)
-
-        # CNN expects (batch, channels, seq_len)
-        x_p = protein_dense.transpose(1, 2)
-        x_p = self.prot_cnn(x_p)
-
-        # Back to (batch, seq_len, channels) for CrossAttention
-        protein_dense = x_p.transpose(1, 2)
+        # 2. Protein processing (3D Pocket EGNN)
+        x_p = self.prot_embed(x_protein)
+        x_p, pos_p = self.egnn_prot1(x_p, pos_protein, edge_index_protein, edge_attr_protein)
+        x_p = F.elu(x_p)
+        x_p = F.dropout(x_p, p=self.dropout, training=self.training)
+        
+        x_p, pos_p = self.egnn_prot2(x_p, pos_p, edge_index_protein, edge_attr_protein)
+        x_p = F.elu(x_p)
+        x_p = F.dropout(x_p, p=self.dropout, training=self.training)
+        
+        x_p, pos_p = self.egnn_prot3(x_p, pos_p, edge_index_protein, edge_attr_protein)
+        
+        protein_dense, protein_mask = to_dense_batch(x_p, batch_protein)
 
         # MHA mask requires True where padding
         protein_pad_mask = ~protein_mask

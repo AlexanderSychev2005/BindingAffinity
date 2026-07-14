@@ -6,5 +6,9 @@ __pycache__
 /refined-set/
 .env
 *.zip
-*.csv
 /runs/
+general-set/
+pdbbind_general_dataset.csv
+
+general-set/
+pdbbind_general_dataset.csv

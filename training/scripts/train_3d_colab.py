@@ -135,16 +135,10 @@ def main():
         description="Train 3D Binding Affinity Model on Colab"
     )
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        default="/content/dataset_fast/refined-set",
-        help="Path to unzipped refined-set",
+        "--data-dir", type=str, default="general-set", help="Path to preprocessed dataset directory"
     )
     parser.add_argument(
-        "--csv-file",
-        type=str,
-        default="pdbbind_refined_dataset.csv",
-        help="Path to csv dataset",
+        "--csv-file", type=str, default="pdbbind_general_dataset.csv", help="Path to dataset CSV"
     )
     parser.add_argument(
         "--log-dir",
@@ -223,7 +217,7 @@ def main():
 
     sample_ligand, sample_protein, _ = train_dataset[0]
     num_ligand_features = sample_ligand.x.shape[1]
-    num_protein_features = 480  # ESM-2 35M embedding size
+    num_protein_features = 20  # 20 features for protein pocket (one-hot amino acids)
 
     print("Ligand features:", num_ligand_features)
     print("Protein features:", num_protein_features)
