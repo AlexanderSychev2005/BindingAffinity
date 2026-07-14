@@ -44,7 +44,33 @@ def main():
                 pdb_id = str(int(float(parts[0]))) + "e" + parts[1]
             except:
                 pass
-        smiles = row["smiles"]
+        # Get SMILES
+        smiles = None
+        if "smiles" in row:
+            smiles = row["smiles"]
+            
+        if pd.isna(smiles) or smiles is None:
+            sdf_path = os.path.join(args.data_dir, pdb_id, f"{pdb_id}_ligand.sdf")
+            mol2_path = os.path.join(args.data_dir, pdb_id, f"{pdb_id}_ligand.mol2")
+            mol = None
+            if os.path.exists(sdf_path):
+                supplier = Chem.SDMolSupplier(sdf_path, sanitize=False)
+                for m in supplier:
+                    if m is not None:
+                        mol = m
+                        break
+            if mol is None and os.path.exists(mol2_path):
+                mol = Chem.MolFromMol2File(mol2_path, sanitize=False)
+                
+            if mol is not None:
+                try:
+                    smiles = Chem.MolToSmiles(mol)
+                except:
+                    pass
+                    
+        if pd.isna(smiles) or smiles is None:
+            fail_count += 1
+            continue
 
         target_path = os.path.join(data_dir, pdb_id, "ligand_3d.pt")
 
