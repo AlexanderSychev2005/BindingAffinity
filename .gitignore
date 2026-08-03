@@ -6,6 +6,11 @@ __pycache__
 /refined-set/
 .env
 *.zip
+*.tar.gz
 /runs/
 general-set/
+/CASF-2016/
+/LP-PDBBind/
+/GIGN/
+/training/data/cache/
 
