@@ -3,14 +3,22 @@
 .ipynb_checkpoints
 __pycache__
 
-/refined-set/
 .env
 *.zip
 *.tar.gz
-/runs/
-general-set/
-/CASF-2016/
-/LP-PDBBind/
-/GIGN/
-/training/data/cache/
 
+# structure-based pipeline (GIGN pocket-graph) - regenerable data/run outputs
+/structure_based/general-set/
+/structure_based/CASF-2016/
+/structure_based/data/*.csv
+/structure_based/data/**/cache/
+/structure_based/data/ablation_*/*.csv
+/structure_based/runs/
+
+# sequence-based pipeline (ESM-2 + ChemBERTa) - regenerable data/run outputs,
+# includes multi-GB raw BindingDB dumps and embedding caches
+/sequence_based/data/raw/
+/sequence_based/data/embeddings*/
+/sequence_based/data/*.csv
+/sequence_based/runs/
+/sequence_based/runs_cloud/

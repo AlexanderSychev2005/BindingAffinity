@@ -1,0 +1,18 @@
+approach,architecture,split_name,split_methodology,test_set,seed,rmse,pearson,notes
+structure-based,GIGN pocket-graph,CL1,LP-PDBBind clean-level ablation,CASF-2016 core,0,2.6084,0.5113,best-of-4 clean levels on ranking metrics
+structure-based,GIGN pocket-graph,CL2,LP-PDBBind clean-level ablation,CASF-2016 core,0,2.4205,0.2227,
+structure-based,GIGN pocket-graph,CL3,LP-PDBBind clean-level ablation,CASF-2016 core,0,3.2291,0.3645,
+structure-based,GIGN pocket-graph,ALL,LP-PDBBind clean-level ablation (no filtering),CASF-2016 core,0,2.1740,0.4004,lowest RMSE of the 4 but worse ranking power than CL1
+structure-based,GIGN pocket-graph,CL1,LP-PDBBind clean-level ablation,CASF-2016 core,1,2.8299,0.3306,seed-variance check
+structure-based,GIGN pocket-graph,CL1,LP-PDBBind clean-level ablation,CASF-2016 core,2,2.5171,0.3049,seed-variance check
+structure-based,GIGN pocket-graph (control),none (GIGN's own Zenodo preprocessed data),GIGN authors' own train/valid/test2016 split,GIGN's own test2016,0,1.2064,0.8321,reproduces GIGN's published numbers almost exactly - proves our architecture/code is correct; also revealed a ligand-truncation defect in GIGN's public data
+sequence-based,ESM-2 (35M frozen) + ChemBERTa concat-MLP,cold-both,TDC-style cold-pair (protein UniProt-ID + ligand scaffold clustering),BindingDB cold-pair test,0,1.3337,0.3566,
+sequence-based,ESM-2 (35M frozen) + ChemBERTa Hadamard-interaction,cold-both,TDC-style cold-pair (protein UniProt-ID + ligand scaffold clustering),BindingDB cold-pair test,0,1.3084,0.4196,best Ki/Kd-only cold-both at 35M
+sequence-based,ESM-2 (35M frozen) + ChemBERTa concat-MLP,cold-drug,TDC-style cold-drug (ligand scaffold clustering only),BindingDB cold-drug test,0,1.3728,0.4045,matches BIOPTIC's own reported validation style (novel chemistry, known target)
+sequence-based,ESM-2 (35M frozen) + ChemBERTa Hadamard-interaction,cold-drug,TDC-style cold-drug (ligand scaffold clustering only),BindingDB cold-drug test,0,1.3814,0.3979,bilinear term did not help on this split
+sequence-based,ESM-2 (650M frozen) + ChemBERTa Hadamard-interaction,cold-both,TDC-style cold-pair,BindingDB cold-pair test,0,1.3714,0.3525,bigger frozen protein encoder alone did not improve cold-both vs 35M
+sequence-based,ESM-2 (650M frozen) + ChemBERTa Hadamard-interaction,cold-drug,TDC-style cold-drug,BindingDB cold-drug test,0,0.9742,0.7528,huge jump vs 35M (pearson 0.40->0.75) - bigger encoder helps a lot when target is known
+sequence-based,ESM-2 (35M frozen) + ChemBERTa Hadamard-interaction,cold-both,TDC-style cold-pair (+IC50/2.3 per BIOPTIC),BindingDB+IC50 cold-pair test,0,1.4217,0.3949,+IC50 data (3.5x more pairs 1.5x more targets) alone made cold-both worse - added noise outweighed added diversity at this model size
+sequence-based,ESM-2 (35M frozen) + ChemBERTa Hadamard-interaction,cold-drug,TDC-style cold-drug (+IC50/2.3 per BIOPTIC),BindingDB+IC50 cold-drug test,0,0.9300,0.7664,+IC50 data alone beat even the 650M frozen encoder trained on Ki/Kd-only
+sequence-based,ESM-2 (650M frozen) + ChemBERTa Hadamard-interaction,cold-both,TDC-style cold-pair (+IC50/2.3 per BIOPTIC),BindingDB+IC50 cold-pair test,0,1.2984,0.5248,BEST cold-both result overall - bigger encoder AND more diverse data needed together; neither alone was enough
+sequence-based,ESM-2 (650M frozen) + ChemBERTa Hadamard-interaction,cold-drug,TDC-style cold-drug (+IC50/2.3 per BIOPTIC),BindingDB+IC50 cold-drug test,0,0.9238,0.7701,BEST cold-drug result overall

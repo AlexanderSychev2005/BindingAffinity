@@ -82,8 +82,9 @@ def load_ligand(complex_dir, pdb_id):
     return None
 
 
-def load_pocket(complex_dir, pdb_id):
-    pocket_path = os.path.join(complex_dir, f"{pdb_id}_pocket.pdb")
+def load_pocket(complex_dir, pdb_id, pocket_filename=None):
+    filename = pocket_filename or f"{pdb_id}_pocket.pdb"
+    pocket_path = os.path.join(complex_dir, filename)
     if not os.path.exists(pocket_path):
         return None
     return Chem.MolFromPDBFile(pocket_path, removeHs=True, sanitize=True)
@@ -117,6 +118,8 @@ def build_complex_graph(ligand, pocket, affinity, dist_threshold=5.0, pocket_rad
     x_l, pos_l, edge_l = mol_to_graph(ligand)
     if pocket_radius is not None:
         pocket = restrict_pocket_to_radius(pocket, pos_l, pocket_radius)
+    if pocket.GetNumAtoms() == 0:
+        return None
     x_p, pos_p, edge_p = mol_to_graph(pocket)
     n_l = x_l.size(0)
 
@@ -140,11 +143,12 @@ def build_complex_graph(ligand, pocket, affinity, dist_threshold=5.0, pocket_rad
 
 
 class PocketLigandDataset(Dataset):
-    def __init__(self, csv_path, data_dir, cache_dir, dist_threshold=5.0, pocket_radius=5.0):
+    def __init__(self, csv_path, data_dir, cache_dir, dist_threshold=5.0, pocket_radius=5.0, pocket_filename=None):
         self.data_dir = data_dir
         self.cache_dir = cache_dir
         self.dist_threshold = dist_threshold
         self.pocket_radius = pocket_radius
+        self.pocket_filename = pocket_filename
         os.makedirs(cache_dir, exist_ok=True)
 
         df = pd.read_csv(csv_path)
@@ -165,7 +169,7 @@ class PocketLigandDataset(Dataset):
 
         complex_dir = os.path.join(self.data_dir, pdb_id)
         ligand = load_ligand(complex_dir, pdb_id)
-        pocket = load_pocket(complex_dir, pdb_id)
+        pocket = load_pocket(complex_dir, pdb_id, self.pocket_filename)
         if ligand is None or pocket is None:
             return None
 

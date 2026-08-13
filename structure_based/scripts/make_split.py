@@ -38,17 +38,17 @@ def filter_existing(df, data_dir, id_col="pdb_id"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lp-pdbbind-csv", default=os.path.join(REPO_ROOT, "LP-PDBBind", "dataset", "LP_PDBBind.csv"))
-    parser.add_argument("--casf-dir", default=os.path.join(REPO_ROOT, "CASF-2016"))
-    parser.add_argument("--general-set-dir", default=os.path.join(REPO_ROOT, "general-set"))
-    parser.add_argument("--clean-level", default="CL1", choices=["CL1", "CL2", "CL3"])
-    parser.add_argument("--out-dir", default=os.path.join(REPO_ROOT, "training", "data"))
+    parser.add_argument("--casf-dir", default=os.path.join(REPO_ROOT, "structure_based", "CASF-2016"))
+    parser.add_argument("--general-set-dir", default=os.path.join(REPO_ROOT, "structure_based", "general-set"))
+    parser.add_argument("--clean-level", default="CL1", choices=["ALL", "CL1", "CL2", "CL3"])
+    parser.add_argument("--out-dir", default=os.path.join(REPO_ROOT, "structure_based", "data"))
     args = parser.parse_args()
 
     lp = pd.read_csv(args.lp_pdbbind_csv, index_col=0)
     lp = lp.rename_axis("pdb_id").reset_index()
 
     non_core = lp[lp["category"] != "core"]
-    clean = non_core[non_core[args.clean_level]]
+    clean = non_core if args.clean_level == "ALL" else non_core[non_core[args.clean_level]]
 
     train = clean[clean["new_split"] == "train"][["pdb_id", "value"]].rename(columns={"value": "affinity"})
     val = clean[clean["new_split"] == "val"][["pdb_id", "value"]].rename(columns={"value": "affinity"})
